@@ -29,5 +29,4 @@ Se o OBS mantiver uma versão antiga:
 
 ## Uso em outro computador
 
-Por padrão, o botão copia `http://127.0.0.1:5000`, que funciona quando OBS e Netrunner estão no mesmo computador. O servidor também informa o endereço da rede local, mas expor o overlay para outro dispositivo exige configuração de rede e firewall por conta do usuário.
-
+O endereço `http://127.0.0.1:5000` funciona somente quando OBS e Netrunner estão no mesmo computador. Por segurança, esta é a configuração recomendada. Não encaminhe a porta 5000 no roteador nem exponha o overlay à internet.
