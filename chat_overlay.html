@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        /* Insira o seu CSS aqui ou adicione em um arquivo separado */
+        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime&display=swap');
+
+        body { margin: 0; padding: 0; background: transparent !important; font-family: 'Courier Prime', monospace; overflow: hidden; position: relative; }
+        #log { position: absolute; bottom: 0; left: 0; width: 100%; height: 100vh; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start; z-index: 10; background: transparent !important; }
+        .name { display: block; font-weight: bold; color: #ff4d4d !important; margin-bottom: 5px; text-shadow: 0 0 4px #ff0000; }
+        .chat-message { display: inline-block; background: rgba(40, 0, 0, 0.6); margin-bottom: 10px; padding: 10px 15px; color: #f0f0f0; font-size: 16px; border-radius: 8px; opacity: 0; transform: translateX(-30px); animation: slideIn 0.5s forwards, neonPulse 2s infinite alternate; border: 2px solid #ff0000; box-shadow: 0 0 5px #ff0000; text-shadow: 0 0 3px #ff0000; max-width: 80%; word-wrap: break-word; }
+        .message { display: block; white-space: pre-wrap; }
+        @keyframes slideIn { to { opacity: 1; transform: translateX(0); } }
+        @keyframes neonPulse { 0% { box-shadow: 0 0 3px #ff0000; } 100% { box-shadow: 0 0 6px #ff4d4d; } }
+    </style>
+</head>
+<body>
+
+    <div id="log"></div>
+
+    <script>
+        // Mantemos apenas as últimas mensagens para não estourar a memória
+        let mensagensExibidas = new Set();
+
+        async function atualizarChat() {
+            try {
+                const res = await fetch("http://127.0.0.1:5000/get_messages?t=" + Date.now());
+                const dados = await res.json();
+                const log = document.getElementById("log");
+
+                dados.forEach(msg => {
+                    // Criamos um ID único para cada mensagem (para não repetir)
+                    let msgId = msg.user + msg.text + Date.now(); 
+                    
+                    if (!mensagensExibidas.has(msgId)) {
+                        const div = document.createElement("div");
+                        div.className = "chat-message";
+
+                        // A estrutura exata que o seu CSS procura
+                        div.innerHTML = `
+                            <span class="name">[${msg.platform}] ${msg.user}</span>
+                            <span class="message">${msg.text}</span>
+                        `;
+                        
+                        log.appendChild(div);
+                        mensagensExibidas.add(msgId);
+
+                        // Remove mensagens antigas se houver mais de 10 na tela
+                        if (log.children.length > 10) {
+                            log.removeChild(log.firstChild);
+                        }
+                    }
+                });
+            } catch (e) { console.error("Falha ao buscar chat:", e); }
+        }
+        setInterval(atualizarChat, 500);
+    </script>
+</body>
+</html>

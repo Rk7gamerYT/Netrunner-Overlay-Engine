@@ -1,0 +1,22 @@
+# Ambientes e caches Python
+venv/
+venv.*/
+__pycache__/
+*.py[cod]
+
+# Saídas de compilação
+build/
+dist/
+release/
+*.spec
+
+# Backups locais
+*.backup-*
+*.webengine-*
+
+# Editores e sistema
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+

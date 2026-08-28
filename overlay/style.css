@@ -1,0 +1,106 @@
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime&display=swap');
+
+body {
+
+    margin: 0;
+
+    padding: 0;
+
+    overflow: hidden;
+
+    background: transparent;
+
+    font-family: 'Courier Prime', monospace;
+}
+
+#log {
+
+    position: absolute;
+
+    left: 0;
+
+    bottom: 0;
+
+    width: 100%;
+
+    padding: 20px;
+
+    box-sizing: border-box;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 10px;
+}
+
+.chat-message {
+
+    display: inline-block;
+
+    background: rgba(0,0,0,0.65);
+
+    color: white;
+
+    padding: 12px;
+
+    border-radius: 12px;
+
+    border: 1px solid #ff0033;
+
+    animation: fadeIn 0.25s ease;
+
+    max-width: 80%;
+
+    word-wrap: break-word;
+
+    box-shadow: 0 0 8px rgba(255,0,51,0.3);
+}
+
+.name {
+
+    font-weight: bold;
+}
+
+.message {
+
+    color: white;
+}
+
+.chat-message.twitch {
+
+    border-color: #9146ff;
+}
+
+.chat-message.youtube {
+
+    border-color: #ff0000;
+}
+
+.chat-message.tiktok {
+
+    border-color: #ff0050;
+}
+
+.chat-message.kick {
+
+    border-color: #53fc18;
+}
+
+@keyframes fadeIn {
+
+    from {
+
+        opacity: 0;
+
+        transform: translateY(10px);
+    }
+
+    to {
+
+        opacity: 1;
+
+        transform: translateY(0);
+    }
+}
+"""

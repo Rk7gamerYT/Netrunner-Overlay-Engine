@@ -1,0 +1,7 @@
+Flask==3.1.3
+Flask-Cors==6.0.5
+PyQt6==6.11.0
+pysher==1.0.8
+pytchat==0.5.5
+requests==2.34.2
+TikTokLive==7.0.0

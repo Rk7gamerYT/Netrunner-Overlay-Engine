@@ -1,0 +1,21 @@
+/* Exemplo de Estilo para Herdar */
+body { background: transparent; overflow: hidden; font-family: 'Roboto', sans-serif; }
+
+#chat-container { display: flex; flex-direction: column; padding: 20px; }
+
+.msg { 
+    background: rgba(0, 0, 0, 0.6); 
+    color: white; 
+    padding: 8px; 
+    margin-bottom: 5px; 
+    border-radius: 4px;
+    animation: slideIn 0.3s ease-out;
+}
+
+.platform { font-size: 0.7em; font-weight: bold; color: #ff0000; }
+
+/* Animação que o OBS vai herdar */
+@keyframes slideIn {
+    from { transform: translateX(-20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
