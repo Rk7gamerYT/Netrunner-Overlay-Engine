@@ -1,10 +1,10 @@
-from PyQt6.QtCore import QThread, pyqtSignal
+from PySide6.QtCore import QThread, Signal
 
 class BaseBot(QThread):
     # Sinal para enviar mensagens para a UI
-    new_message = pyqtSignal(str, str, str)  # user, text, platform
+    new_message = Signal(str, str, str)  # user, text, platform
     # Sinal para avisar status (ex: "Conectado", "Erro")
-    status_update = pyqtSignal(str)
+    status_update = Signal(str)
 
     def __init__(self, channel_name):
         super().__init__()

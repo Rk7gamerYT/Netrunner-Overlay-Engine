@@ -6,7 +6,7 @@ import html as html_utils
 from flask import Flask, jsonify, render_template_string, request
 from flask_cors import CORS
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
     QWidget,
@@ -22,8 +22,8 @@ from PyQt6.QtWidgets import (
     QTextBrowser
 )
 
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QIcon
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QIcon
 
 
 # ==========================================

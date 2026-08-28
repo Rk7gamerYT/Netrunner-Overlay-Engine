@@ -44,12 +44,13 @@ try {
     & $pythonCommand -m PyInstaller `
         --noconfirm `
         --clean `
-        --onefile `
+        --onedir `
         --windowed `
         --name "NetrunnerOverlay" `
         --icon "assets\netrunner.ico" `
         --version-file "version_info.txt" `
         --add-data "assets\netrunner.ico;assets" `
+        --exclude-module "PyQt6" `
         --collect-all "TikTokLive" `
         --collect-all "pytchat" `
         --collect-all "pysher" `
@@ -60,12 +61,15 @@ try {
     }
 
     New-Item -ItemType Directory -Path $packageDir -Force | Out-Null
-    Copy-Item -LiteralPath (Join-Path $distDir "NetrunnerOverlay.exe") -Destination $packageDir
+    Copy-Item -Path (Join-Path $distDir "NetrunnerOverlay\*") -Destination $packageDir -Recurse
     Copy-Item -LiteralPath (Join-Path $projectRoot "README.md") -Destination $packageDir
+    Copy-Item -LiteralPath (Join-Path $projectRoot "LICENSE.md") -Destination $packageDir
+    Copy-Item -LiteralPath (Join-Path $projectRoot "THIRD_PARTY_NOTICES.md") -Destination $packageDir
+    Copy-Item -LiteralPath (Join-Path $projectRoot "licenses") -Destination $packageDir -Recurse
 
     Compress-Archive -Path (Join-Path $packageDir "*") -DestinationPath $zipPath -CompressionLevel Optimal
 
-    $exeHash = Get-FileHash -LiteralPath (Join-Path $distDir "NetrunnerOverlay.exe") -Algorithm SHA256
+    $exeHash = Get-FileHash -LiteralPath (Join-Path $packageDir "NetrunnerOverlay.exe") -Algorithm SHA256
     $zipHash = Get-FileHash -LiteralPath $zipPath -Algorithm SHA256
     $checksumLines = @(
         "$($exeHash.Hash)  NetrunnerOverlay.exe",
