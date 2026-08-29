@@ -17,6 +17,8 @@ O Netrunner funciona como agregador de leitura: ele acompanha as mensagens públ
 - Botão para copiar o link do OBS.
 - Encerramento e reconexão da captura sem reiniciar o aplicativo.
 - Editor integrado de HTML, CSS e JavaScript do overlay.
+- Personalizações do overlay salvas localmente ao clicar em **Salvar e aplicar**.
+- Ícones visuais de Twitch, YouTube, TikTok e Kick no dashboard e no chat do OBS.
 - Encerramento completo do processo ao fechar a janela.
 
 ## Download e execução

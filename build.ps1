@@ -51,6 +51,7 @@ try {
         --version-file "version_info.txt" `
         --add-data "assets\netrunner.ico;assets" `
         --add-data "assets\netrunner.png;assets" `
+        --add-data "assets\platforms;assets\platforms" `
         --add-data "ui\dashboard.html;ui" `
         --exclude-module "PyQt6" `
         --exclude-module "PySide6" `

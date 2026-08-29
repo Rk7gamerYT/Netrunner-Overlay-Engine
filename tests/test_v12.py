@@ -1,3 +1,5 @@
+import os
+import tempfile
 import unittest
 
 import engine
@@ -41,12 +43,15 @@ class DashboardTests(unittest.TestCase):
     def setUp(self):
         with engine.CHAT_LOCK:
             engine.CHAT_MESSAGES.clear()
-        self.app = WebDashboardController()
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.overlay_config_path = os.path.join(self.temp_dir.name, "overlay.json")
+        self.app = WebDashboardController(self.overlay_config_path)
         engine.set_dashboard_controller(self.app)
 
     def tearDown(self):
         self.app.shutdown()
         engine.set_dashboard_controller(None)
+        self.temp_dir.cleanup()
 
     def test_message_updates_dashboard_and_overlay_queue(self):
         self.app._receive_message("Alice", "Oi", "twitch")
@@ -57,8 +62,16 @@ class DashboardTests(unittest.TestCase):
             self.assertEqual(engine.CHAT_MESSAGES[-1]["message"], "Oi")
 
     def test_overlay_editor_and_real_preview_routes(self):
+        for platform in ("twitch", "youtube", "tiktok", "kick"):
+            self.assertIn(f"/assets/platforms/{platform}.png", engine.DEFAULT_LIVE_JS)
         result = self.app.apply_overlay({"html": "<div>v1.2</div>", "css": "body{}", "js": ""})
         self.assertTrue(result["ok"])
+        self.assertTrue(os.path.isfile(self.overlay_config_path))
+        self.assertTrue(self.app.overlay_source()["saved"])
+        self.app.shutdown()
+        self.app = WebDashboardController(self.overlay_config_path)
+        engine.set_dashboard_controller(self.app)
+        self.assertEqual(self.app.overlay_source()["html"], "<div>v1.2</div>")
         client = engine.app.test_client()
         dashboard_response = client.get("/dashboard")
         self.assertEqual(dashboard_response.status_code, 200)
@@ -73,6 +86,11 @@ class DashboardTests(unittest.TestCase):
         self.assertIn(b"<div>v1.2</div>", response.data)
         response.close()
         self.assertEqual(client.get("/api/state").status_code, 200)
+        for platform in ("twitch", "youtube", "tiktok", "kick"):
+            icon_response = client.get(f"/assets/platforms/{platform}.png")
+            self.assertEqual(icon_response.status_code, 200)
+            self.assertEqual(icon_response.mimetype, "image/png")
+            icon_response.close()
 
 
 if __name__ == "__main__":

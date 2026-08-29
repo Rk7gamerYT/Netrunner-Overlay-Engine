@@ -29,3 +29,9 @@ A integração de leitura utiliza TikTokLive 7.0.0 sob a licença Modified AGPL-
 O executável contém o runtime do Python e bibliotecas sob licenças permissivas ou compatíveis, incluindo Flask, Werkzeug, Jinja2, Requests, HTTPX, websockets, pytchat, pysher e suas dependências. Os textos e avisos disponíveis nos pacotes utilizados acompanham a distribuição no diretório `licenses`.
 
 As marcas e nomes de projetos pertencem aos respectivos titulares. A inclusão de uma biblioteca não implica endosso ao Netrunner.
+
+## Simple Icons
+
+Os ícones de Twitch, YouTube, TikTok e Kick usados para identificar a origem das mensagens foram obtidos do projeto Simple Icons e convertidos para PNG sem alterar o desenho. O projeto é distribuído sob CC0 1.0; marcas e logotipos continuam pertencendo aos respectivos titulares e seu uso aqui não implica afiliação ou endosso.
+
+Projeto: https://github.com/simple-icons/simple-icons

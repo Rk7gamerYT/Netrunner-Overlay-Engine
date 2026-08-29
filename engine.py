@@ -45,7 +45,7 @@ def set_dashboard_controller(controller):
 # OVERLAY DEFAULTS
 # ==========================================
 
-LIVE_HTML = """
+DEFAULT_LIVE_HTML = """
 <div id="log"></div>
 
 <script
@@ -58,12 +58,12 @@ id="chatlist_item"
     data-id="{messageId}"
 >
 
-    <span
+    <img
         class="platform-icon"
+        src="{icon}"
+        alt=""
         title="{platformLabel}"
     >
-        {icon}
-    </span>
 
     <span
         class="name"
@@ -85,8 +85,10 @@ id="chatlist_item"
 </script>
 """
 
+LIVE_HTML = DEFAULT_LIVE_HTML
 
-LIVE_CSS = """
+
+DEFAULT_LIVE_CSS = """
 @import url('https://fonts.googleapis.com/css2?family=Courier+Prime&display=swap');
 
 body {
@@ -143,7 +145,10 @@ body {
 
 .platform-icon {
     margin-right: 6px;
-    font-size: 13px;
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    vertical-align: -4px;
 }
 
 .colon {
@@ -167,7 +172,9 @@ body {
 }
 """
 
-LIVE_JS = """
+LIVE_CSS = DEFAULT_LIVE_CSS
+
+DEFAULT_LIVE_JS = """
 let lastMessageId = 0;
 
 let updateInProgress = false;
@@ -213,15 +220,15 @@ function addChatMessage(
 
     const icons = {
 
-        twitch: "🟣",
+        twitch: "/assets/platforms/twitch.png",
 
-        youtube: "🔴",
+        youtube: "/assets/platforms/youtube.png",
 
-        tiktok: "🎵",
+        tiktok: "/assets/platforms/tiktok.png",
 
-        kick: "🟢",
+        kick: "/assets/platforms/kick.png",
 
-        default: "💬"
+        default: "/assets/netrunner.png"
     };
 
     const labels = {
@@ -382,6 +389,8 @@ updateChat();
 setInterval(updateChat, 1000);
 """
 
+LIVE_JS = DEFAULT_LIVE_JS
+
 
 # ==========================================
 # TEMPLATE
@@ -529,7 +538,8 @@ def dashboard_overlay_source():
     if DASHBOARD_CONTROLLER is None:
         return jsonify({"ok": False, "message": "Dashboard indisponível."}), 503
     if request.method == "POST":
-        return jsonify(DASHBOARD_CONTROLLER.apply_overlay(request.get_json(silent=True) or {}))
+        result = DASHBOARD_CONTROLLER.apply_overlay(request.get_json(silent=True) or {})
+        return jsonify(result), 200 if result.get("ok") else 400
     return jsonify(DASHBOARD_CONTROLLER.overlay_source())
 
 

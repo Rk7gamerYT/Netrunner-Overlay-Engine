@@ -1,3 +1,4 @@
+import json
 import os
 import queue
 import threading
@@ -21,11 +22,22 @@ PLATFORMS = {
     "kick": KickBot,
 }
 
+OVERLAY_CONFIG_ENV = "NETRUNNER_OVERLAY_CONFIG"
+MAX_OVERLAY_SECTION_BYTES = 1024 * 1024
+
+
+def default_overlay_config_path():
+    override = os.environ.get(OVERLAY_CONFIG_ENV)
+    if override:
+        return os.path.abspath(override)
+    base_dir = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
+    return os.path.join(base_dir, "NetrunnerOverlay", "overlay.json")
+
 
 class WebDashboardController:
     """Thread-safe bridge between the web dashboard and the capture workers."""
 
-    def __init__(self):
+    def __init__(self, overlay_config_path=None):
         self.events = queue.Queue()
         self.lock = threading.RLock()
         self.bots = []
@@ -42,6 +54,9 @@ class WebDashboardController:
         self.session_started = None
         self.process = psutil.Process(os.getpid())
         self.process.cpu_percent()
+        self.overlay_config_path = overlay_config_path or default_overlay_config_path()
+        self.overlay_is_saved = False
+        self._load_overlay_settings()
         self._add_activity("Aplicação v1.2.0 iniciada", "cyan")
         self._event_thread = threading.Thread(
             target=self._event_loop,
@@ -129,16 +144,71 @@ class WebDashboardController:
             return {"ok": True, "message": "Captura encerrada."}
 
     def apply_overlay(self, payload):
+        source = {
+            "html": str((payload or {}).get("html", engine.LIVE_HTML)),
+            "css": str((payload or {}).get("css", engine.LIVE_CSS)),
+            "js": str((payload or {}).get("js", engine.LIVE_JS)),
+        }
+        oversized = [
+            name for name, value in source.items()
+            if len(value.encode("utf-8")) > MAX_OVERLAY_SECTION_BYTES
+        ]
+        if oversized:
+            return {"ok": False, "message": "A personalização excede o limite de 1 MB por campo."}
         with self.lock:
-            engine.LIVE_HTML = str((payload or {}).get("html", engine.LIVE_HTML))
-            engine.LIVE_CSS = str((payload or {}).get("css", engine.LIVE_CSS))
-            engine.LIVE_JS = str((payload or {}).get("js", engine.LIVE_JS))
+            try:
+                self._save_overlay_settings(source)
+            except OSError as error:
+                self._log(f"[OVERLAY] Falha ao salvar personalização: {error}", "youtube", activity=False)
+                return {"ok": False, "message": "Não foi possível salvar a personalização localmente."}
+            engine.LIVE_HTML = source["html"]
+            engine.LIVE_CSS = source["css"]
+            engine.LIVE_JS = source["js"]
+            self.overlay_is_saved = True
             self._add_activity("Overlay atualizado em tempo real", "green")
-        return {"ok": True, "message": "Overlay aplicado no OBS."}
+        return {"ok": True, "message": "Overlay salvo e aplicado no OBS."}
 
     def overlay_source(self):
         with self.lock:
-            return {"html": engine.LIVE_HTML, "css": engine.LIVE_CSS, "js": engine.LIVE_JS}
+            return {
+                "html": engine.LIVE_HTML,
+                "css": engine.LIVE_CSS,
+                "js": engine.LIVE_JS,
+                "saved": self.overlay_is_saved,
+            }
+
+    def _load_overlay_settings(self):
+        if not os.path.isfile(self.overlay_config_path):
+            return
+        try:
+            with open(self.overlay_config_path, "r", encoding="utf-8") as settings_file:
+                source = json.load(settings_file)
+            if not isinstance(source, dict):
+                raise ValueError("formato inválido")
+            values = {}
+            for name in ("html", "css", "js"):
+                value = source.get(name)
+                if not isinstance(value, str):
+                    raise ValueError(f"campo {name} inválido")
+                if len(value.encode("utf-8")) > MAX_OVERLAY_SECTION_BYTES:
+                    raise ValueError(f"campo {name} excede 1 MB")
+                values[name] = value
+            engine.LIVE_HTML = values["html"]
+            engine.LIVE_CSS = values["css"]
+            engine.LIVE_JS = values["js"]
+            self.overlay_is_saved = True
+        except (OSError, ValueError, json.JSONDecodeError) as error:
+            self._log(f"[OVERLAY] Personalização ignorada: {error}", "youtube", activity=False)
+
+    def _save_overlay_settings(self, source):
+        directory = os.path.dirname(self.overlay_config_path)
+        os.makedirs(directory, exist_ok=True)
+        temporary_path = f"{self.overlay_config_path}.tmp"
+        with open(temporary_path, "w", encoding="utf-8") as settings_file:
+            json.dump(source, settings_file, ensure_ascii=False, indent=2)
+            settings_file.flush()
+            os.fsync(settings_file.fileno())
+        os.replace(temporary_path, self.overlay_config_path)
 
     def snapshot(self):
         with self.lock:
