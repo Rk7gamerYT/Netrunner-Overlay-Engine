@@ -11,6 +11,6 @@ Sem autorização prévia e expressa do titular, não é permitido:
 - usar o aplicativo ou qualquer parte dele para spam, assédio, acesso não autorizado ou violação dos termos das plataformas;
 - apresentar uma cópia modificada ou não oficial como publicação do projeto.
 
-Componentes de terceiros permanecem sujeitos às respectivas licenças. Nada nesta licença limita o direito de substituir, estudar ou realizar engenharia reversa desses componentes quando isso for necessário para exercer direitos concedidos pela LGPL ou por outra licença aplicável. As marcas Twitch, YouTube, TikTok, Kick e OBS pertencem aos seus respectivos titulares.
+Componentes de terceiros permanecem sujeitos às respectivas licenças. Nada nesta licença limita os direitos concedidos obrigatoriamente por essas licenças. As marcas Twitch, YouTube, TikTok, Kick e OBS pertencem aos seus respectivos titulares.
 
 O software é fornecido “como está”, sem garantias expressas ou implícitas, na extensão permitida pela legislação aplicável.

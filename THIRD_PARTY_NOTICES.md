@@ -2,17 +2,17 @@
 
 O Netrunner Overlay Engine inclui componentes de terceiros. Esses componentes permanecem sob suas próprias licenças e não são abrangidos pelas restrições aplicadas ao código proprietário do Netrunner.
 
-## Qt for Python / PySide6 6.8.3
+## Dear PyGui 2.3.1
 
-A interface utiliza PySide6 e bibliotecas Qt distribuídas, para esta versão, sob a GNU Lesser General Public License versão 3 (LGPL-3.0). As bibliotecas compartilhadas permanecem separadas no diretório `_internal` do pacote para que possam ser substituídas por versões compatíveis.
+A interface da versão 1.2.0 utiliza Dear PyGui sob a licença MIT. A licença permite uso em aplicações proprietárias, modificação e distribuição, mantendo o respectivo aviso de copyright. O texto acompanha o pacote em `licenses/DearPyGui-LICENSE.txt`.
 
-O usuário pode estudar, modificar, substituir e realizar a engenharia reversa necessária para depurar modificações nesses componentes, conforme permitido pela LGPL. O texto integral acompanha o pacote em `licenses/LGPL-3.0.txt`.
+Projeto: https://github.com/hoffstadt/DearPyGui
 
-### Oferta do código-fonte correspondente
+## psutil 7.2.2
 
-Mediante solicitação por uma issue no repositório oficial, o mantenedor fornecerá gratuitamente uma cópia digital do código-fonte correspondente das bibliotecas Qt/PySide6 distribuídas nesta versão, incluindo as informações necessárias para substituir as bibliotecas. Esta oferta permanece válida até 28 de agosto de 2029.
+As métricas locais de CPU e memória utilizam psutil sob a licença BSD de 3 cláusulas. O texto acompanha o pacote em `licenses/psutil-LICENSE.txt`.
 
-Projeto e documentação: https://doc.qt.io/qtforpython-6/
+Projeto: https://github.com/giampaolo/psutil
 
 ## TikTokLive 7.0.0
 

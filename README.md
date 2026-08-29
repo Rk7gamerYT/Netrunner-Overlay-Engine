@@ -22,7 +22,7 @@ O Netrunner funciona como agregador de leitura: ele acompanha as mensagens públ
 ## Download e execução
 
 1. Abra a página **Releases** deste repositório.
-2. Baixe `NetrunnerOverlay-v1.0.0-windows-x64.zip`.
+2. Baixe `NetrunnerOverlay-v1.2.0-windows-x64.zip`.
 3. Extraia o arquivo ZIP.
 4. Execute `NetrunnerOverlay.exe`.
 

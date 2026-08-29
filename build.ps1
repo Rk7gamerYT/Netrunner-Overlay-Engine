@@ -1,6 +1,6 @@
 param(
     [string]$Python = "$PSScriptRoot\venv\Scripts\python.exe",
-    [string]$Version = "1.0.0"
+    [string]$Version = "1.2.0"
 )
 
 $ErrorActionPreference = "Stop"
@@ -35,8 +35,8 @@ foreach ($target in @($buildDir, $distDir, $releaseDir)) {
 Push-Location $projectRoot
 
 try {
-    # Evita que DLLs de ferramentas externas presentes no PATH (como Poppler/ICU)
-    # sejam incorporadas por engano e entrem em conflito com o Qt no executável.
+    # Evita que DLLs de ferramentas externas presentes no PATH sejam
+    # incorporadas por engano ao executável.
     $env:Path = (($originalPath -split ";") | Where-Object {
         $_ -and $_ -notmatch "codex-runtimes" -and $_ -notmatch "poppler[\\/]Library[\\/]bin"
     }) -join ";"
@@ -44,13 +44,14 @@ try {
     & $pythonCommand -m PyInstaller `
         --noconfirm `
         --clean `
-        --onedir `
+        --onefile `
         --windowed `
         --name "NetrunnerOverlay" `
         --icon "assets\netrunner.ico" `
         --version-file "version_info.txt" `
         --add-data "assets\netrunner.ico;assets" `
         --exclude-module "PyQt6" `
+        --exclude-module "PySide6" `
         --collect-all "TikTokLive" `
         --collect-all "pytchat" `
         --collect-all "pysher" `
@@ -61,7 +62,7 @@ try {
     }
 
     New-Item -ItemType Directory -Path $packageDir -Force | Out-Null
-    Copy-Item -Path (Join-Path $distDir "NetrunnerOverlay\*") -Destination $packageDir -Recurse
+    Copy-Item -LiteralPath (Join-Path $distDir "NetrunnerOverlay.exe") -Destination $packageDir
     Copy-Item -LiteralPath (Join-Path $projectRoot "README.md") -Destination $packageDir
     Copy-Item -LiteralPath (Join-Path $projectRoot "LICENSE.md") -Destination $packageDir
     Copy-Item -LiteralPath (Join-Path $projectRoot "THIRD_PARTY_NOTICES.md") -Destination $packageDir
