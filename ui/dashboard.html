@@ -13,7 +13,7 @@
     }
     * { box-sizing:border-box; }
     html,body { margin:0; min-height:100%; background:var(--bg); color:var(--text); font-family:"Segoe UI",Arial,sans-serif; }
-    button,input,textarea { font:inherit; }
+    button,input,textarea,select { font:inherit; }
     button { color:var(--text); cursor:pointer; }
     .app { min-height:100vh; display:grid; grid-template-columns:266px 1fr; }
     .sidebar { position:fixed; inset:0 auto 0 0; width:266px; padding:26px 18px; border-right:1px solid #472058; background:linear-gradient(180deg,#030817 0%,#03091a 100%); display:flex; flex-direction:column; z-index:5; }
@@ -79,8 +79,8 @@
     .message p { margin:3px 0 0 44px; color:#cfd8e9; font-size:13px; overflow-wrap:anywhere; }
     .empty { color:var(--muted); text-align:center; margin-top:80px; }
     .filter { display:flex; gap:8px; padding-top:13px; }
-    input,textarea { border:1px solid #203b62; background:#061127; color:var(--text); border-radius:6px; outline:none; }
-    input:focus,textarea:focus { border-color:var(--cyan); box-shadow:0 0 0 2px #11d8f41c; }
+    input,textarea,select { border:1px solid #203b62; background:#061127; color:var(--text); border-radius:6px; outline:none; }
+    input:focus,textarea:focus,select:focus { border-color:var(--cyan); box-shadow:0 0 0 2px #11d8f41c; }
     input { padding:11px 13px; width:100%; }
     .editor-panel { grid-column:1/-1; margin-top:14px; padding:13px 14px 16px; }
     .editor-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
@@ -103,6 +103,10 @@
     .form-grid { display:grid; grid-template-columns:repeat(2,minmax(260px,1fr)); gap:14px; }
     .form-card { padding:20px; }
     .form-card label { display:block; color:var(--accent); font-weight:700; margin-bottom:10px; }
+    .settings-grid { display:grid; gap:18px; max-width:720px; }
+    .setting-row { display:grid; grid-template-columns:220px 1fr; align-items:center; gap:22px; margin-top:18px; }
+    .setting-row label { font-weight:700; }
+    .setting-row select { width:100%; padding:11px 13px; }
     .section-actions { display:flex; gap:12px; margin-top:18px; }
     .logs { height:640px; overflow:auto; font:13px/1.7 Consolas,monospace; }
     .toast { position:fixed; right:28px; bottom:26px; z-index:20; padding:12px 17px; border:1px solid var(--cyan); border-radius:7px; background:#07152aee; box-shadow:0 0 24px #10cce533; transform:translateY(100px); opacity:0; transition:.2s; }
@@ -116,12 +120,12 @@
   <aside class="sidebar">
     <div class="brand"><img src="/assets/netrunner.png" alt="Netrunner"><div><strong>NETRUNNER</strong><span>OVERLAY ENGINE</span></div></div>
     <nav>
-      <button class="nav active" data-page="dashboard"><i>▦</i><span>Dashboard</span></button>
-      <button class="nav" data-page="platforms"><i>◉</i><span>Plataformas</span></button>
-      <button class="nav" data-page="editor"><i>&lt;/&gt;</i><span>Overlay Editor</span></button>
-      <button class="nav" data-page="chat"><i>▣</i><span>Chat ao Vivo</span></button>
-      <button class="nav" data-page="logs"><i>▤</i><span>Logs</span></button>
-      <button class="nav" data-page="settings"><i>⚙</i><span>Configurações</span></button>
+      <button class="nav active" data-page="dashboard"><i>▦</i><span data-i18n="nav.dashboard">Dashboard</span></button>
+      <button class="nav" data-page="platforms"><i>◉</i><span data-i18n="nav.platforms">Plataformas</span></button>
+      <button class="nav" data-page="editor"><i>&lt;/&gt;</i><span data-i18n="nav.editor">Overlay Editor</span></button>
+      <button class="nav" data-page="chat"><i>▣</i><span data-i18n="nav.chat">Chat ao Vivo</span></button>
+      <button class="nav" data-page="logs"><i>▤</i><span data-i18n="nav.logs">Logs</span></button>
+      <button class="nav" data-page="settings"><i>⚙</i><span data-i18n="nav.settings">Configurações</span></button>
     </nav>
     <div class="version"><img src="/assets/netrunner.png" alt=""><div>Netrunner Engine<br>v1.2.0</div></div>
   </aside>
@@ -129,7 +133,7 @@
   <main class="main">
     <header class="topbar">
       <div class="title"><h1 id="pageTitle">DASHBOARD</h1><p id="pageSubtitle">Visão geral do sistema</p></div>
-      <div class="engine"><span class="online">Engine Online</span><button id="engineBtn" class="btn btn-primary">INICIAR ENGINE</button><button class="btn btn-icon" id="closeBtn" title="Encerrar aplicação">⏻</button></div>
+      <div class="engine"><span class="online" data-i18n="engine.online">Engine Online</span><button id="engineBtn" class="btn btn-primary">INICIAR ENGINE</button><button class="btn btn-icon" id="closeBtn" data-i18n-title="app.close" title="Encerrar aplicação">⏻</button></div>
     </header>
 
     <section class="page active" id="page-dashboard">
@@ -137,16 +141,16 @@
         <div class="left-stack">
           <div class="cards" id="platformCards"></div>
           <div class="panel">
-            <div class="panel-title"><span class="glyph">♙</span> OVERLAY SERVER</div><p class="sub">Servidor de overlay rodando</p>
-            <div class="server-row"><span class="server-url">http://127.0.0.1:5000/overlay</span><button class="btn" id="copyLink">COPIAR LINK</button></div>
+            <div class="panel-title"><span class="glyph">♙</span> <span data-i18n="server.title">OVERLAY SERVER</span></div><p class="sub" data-i18n="server.running">Servidor de overlay rodando</p>
+            <div class="server-row"><span class="server-url">http://127.0.0.1:5000/overlay</span><button class="btn" id="copyLink" data-i18n="server.copy">COPIAR LINK</button></div>
           </div>
-          <div class="panel"><div class="panel-title"><span class="glyph">▤</span> ESTATÍSTICAS</div><div class="stats" id="stats"></div></div>
-          <div class="panel"><div class="panel-title"><span class="glyph">⌁</span> ATIVIDADE RECENTE</div><div class="activity" id="activity"></div></div>
+          <div class="panel"><div class="panel-title"><span class="glyph">▤</span> <span data-i18n="stats.title">ESTATÍSTICAS</span></div><div class="stats" id="stats"></div></div>
+          <div class="panel"><div class="panel-title"><span class="glyph">⌁</span> <span data-i18n="activity.title">ATIVIDADE RECENTE</span></div><div class="activity" id="activity"></div></div>
         </div>
         <div class="panel chat-panel">
-          <div class="chat-head"><div class="panel-title"><span class="glyph">●</span> CHAT AO VIVO</div><p class="sub">Mensagens recebidas em tempo real</p></div>
+          <div class="chat-head"><div class="panel-title"><span class="glyph">●</span> <span data-i18n="chat.title">CHAT AO VIVO</span></div><p class="sub" data-i18n="chat.subtitle">Mensagens recebidas em tempo real</p></div>
           <div class="chat-list" id="dashboardChat"></div>
-          <div class="filter"><input id="dashboardFilter" placeholder="Filtrar chat ao vivo..."><button class="btn btn-icon">➤</button></div>
+          <div class="filter"><input id="dashboardFilter" data-i18n-placeholder="chat.filter" placeholder="Filtrar chat ao vivo..."><button class="btn btn-icon">➤</button></div>
         </div>
         <div class="panel editor-panel" id="dashboardEditor"></div>
       </div>
@@ -154,32 +158,89 @@
 
     <section class="page" id="page-platforms">
       <div class="form-grid" id="platformFields"></div>
-      <div class="section-actions"><button class="btn btn-hot" id="startCapture">INICIAR / RECONECTAR CAPTURA</button><button class="btn" id="stopCapture">ENCERRAR CAPTURA</button></div>
+      <div class="section-actions"><button class="btn btn-hot" id="startCapture" data-i18n="capture.startReconnect">INICIAR / RECONECTAR CAPTURA</button><button class="btn" id="stopCapture" data-i18n="capture.stop">ENCERRAR CAPTURA</button></div>
     </section>
     <section class="page" id="page-editor"><div class="panel editor-panel" id="fullEditor"></div></section>
-    <section class="page" id="page-chat"><div class="panel chat-panel" style="height:720px"><div class="chat-head"><div class="panel-title"><span class="glyph">●</span> CHAT AO VIVO</div><p class="sub">Mensagens recebidas em tempo real</p></div><div class="chat-list" id="fullChat"></div><div class="filter"><input id="fullFilter" placeholder="Filtrar mensagens..."></div></div></section>
+    <section class="page" id="page-chat"><div class="panel chat-panel" style="height:720px"><div class="chat-head"><div class="panel-title"><span class="glyph">●</span> <span data-i18n="chat.title">CHAT AO VIVO</span></div><p class="sub" data-i18n="chat.subtitle">Mensagens recebidas em tempo real</p></div><div class="chat-list" id="fullChat"></div><div class="filter"><input id="fullFilter" data-i18n-placeholder="chat.filterMessages" placeholder="Filtrar mensagens..."></div></div></section>
     <section class="page" id="page-logs"><div class="panel logs" id="logs"></div></section>
-    <section class="page" id="page-settings"><div class="panel"><div class="panel-title">CONFIGURAÇÕES</div><p>Servidor local: <span class="server-url">127.0.0.1:5000</span></p><p style="color:var(--green)">Apenas conexões locais são aceitas.</p><p style="color:var(--muted)">Nenhuma credencial de plataforma é armazenada.</p></div></section>
+    <section class="page" id="page-settings"><div class="settings-grid"><div class="panel"><div class="panel-title" data-i18n="settings.languageTitle">IDIOMA</div><p style="color:var(--muted)" data-i18n="settings.languageDescription">Escolha o idioma da interface.</p><div class="setting-row"><label for="languageSelect" data-i18n="settings.language">Idioma da interface</label><select id="languageSelect"><option value="pt">Português</option><option value="en">English</option><option value="es">Español</option><option value="fr">Français</option></select></div></div><div class="panel"><div class="panel-title" data-i18n="settings.title">CONFIGURAÇÕES</div><p><span data-i18n="settings.localServer">Servidor local</span>: <span class="server-url">127.0.0.1:5000</span></p><p style="color:var(--green)" data-i18n="settings.localOnly">Apenas conexões locais são aceitas.</p><p style="color:var(--muted)" data-i18n="settings.noCredentials">Nenhuma credencial de plataforma é armazenada.</p></div></div></section>
   </main>
 </div>
 <div class="toast" id="toast"></div>
 
 <template id="editorTemplate">
-  <div class="editor-head"><div><b>OVERLAY EDITOR</b><div style="color:var(--muted);font-size:12px">Edite seu overlay em tempo real</div></div><div class="editor-actions">AUTO PREVIEW <label class="switch"><input type="checkbox" checked data-auto><span></span></label><button class="btn" data-reset>RESET</button><button class="btn btn-hot" data-apply>APLICAR</button></div></div>
-  <div class="editor-grid"><div><div class="tabs"><button class="tab active" data-tab="html">HTML</button><button class="tab" data-tab="css">CSS</button><button class="tab" data-tab="js">JS</button></div><textarea class="active" data-code="html" spellcheck="false"></textarea><textarea data-code="css" spellcheck="false"></textarea><textarea data-code="js" spellcheck="false"></textarea></div><div><div class="preview-label">PREVIEW REAL DO OBS</div><div class="preview-shell"><iframe data-preview title="Prévia real do overlay"></iframe><span class="preview-badge">/overlay</span></div></div></div>
+  <div class="editor-head"><div><b data-i18n="editor.title">OVERLAY EDITOR</b><div style="color:var(--muted);font-size:12px" data-i18n="editor.subtitle">Edite seu overlay em tempo real</div></div><div class="editor-actions"><span data-i18n="editor.autoPreview">AUTO PREVIEW</span> <label class="switch"><input type="checkbox" checked data-auto><span></span></label><button class="btn" data-reset data-i18n="editor.reset">RESET</button><button class="btn btn-hot" data-apply data-i18n="editor.apply">APLICAR</button></div></div>
+  <div class="editor-grid"><div><div class="tabs"><button class="tab active" data-tab="html">HTML</button><button class="tab" data-tab="css">CSS</button><button class="tab" data-tab="js">JS</button></div><textarea class="active" data-code="html" spellcheck="false"></textarea><textarea data-code="css" spellcheck="false"></textarea><textarea data-code="js" spellcheck="false"></textarea></div><div><div class="preview-label" data-i18n="editor.preview">PREVIEW REAL DO OBS</div><div class="preview-shell"><iframe data-preview data-i18n-title="editor.previewTitle" title="Prévia real do overlay"></iframe><span class="preview-badge">/overlay</span></div></div></div>
 </template>
 
 <script>
 const platforms={twitch:{name:'TWITCH',icon:'TW',color:'var(--twitch)'},youtube:{name:'YOUTUBE',icon:'YT',color:'var(--youtube)'},tiktok:{name:'TIKTOK',icon:'TT',color:'var(--tiktok)'},kick:{name:'KICK',icon:'K',color:'var(--kick)'}};
-const pageMeta={dashboard:['DASHBOARD','Visão geral do sistema'],platforms:['PLATAFORMAS','Configure os canais acompanhados'],editor:['OVERLAY EDITOR','Personalize o overlay do OBS'],chat:['CHAT AO VIVO','Mensagens recebidas'],logs:['LOGS','Eventos e diagnósticos'],settings:['CONFIGURAÇÕES','Preferências locais']};
-let latestState=null, overlaySource={html:'',css:'',js:''}, toastTimer;
+const translations={
+  pt:{
+    'nav.dashboard':'Dashboard','nav.platforms':'Plataformas','nav.editor':'Overlay Editor','nav.chat':'Chat ao Vivo','nav.logs':'Logs','nav.settings':'Configurações',
+    'page.dashboard.title':'DASHBOARD','page.dashboard.subtitle':'Visão geral do sistema','page.platforms.title':'PLATAFORMAS','page.platforms.subtitle':'Configure os canais acompanhados','page.editor.title':'OVERLAY EDITOR','page.editor.subtitle':'Personalize o overlay do OBS','page.chat.title':'CHAT AO VIVO','page.chat.subtitle':'Mensagens recebidas','page.logs.title':'LOGS','page.logs.subtitle':'Eventos e diagnósticos','page.settings.title':'CONFIGURAÇÕES','page.settings.subtitle':'Preferências locais',
+    'engine.online':'Engine Online','engine.start':'INICIAR ENGINE','engine.stop':'PARAR ENGINE','app.close':'Encerrar aplicação',
+    'server.title':'OVERLAY SERVER','server.running':'Servidor de overlay rodando','server.copy':'COPIAR LINK','server.copied':'Link do OBS copiado','server.copyFailed':'Não foi possível copiar o link.',
+    'stats.title':'ESTATÍSTICAS','stats.messages':'Total de mensagens','stats.platforms':'Plataformas ativas','stats.session':'Tempo de sessão','stats.resources':'CPU / Memória','activity.title':'ATIVIDADE RECENTE',
+    'chat.title':'CHAT AO VIVO','chat.subtitle':'Mensagens recebidas em tempo real','chat.filter':'Filtrar chat ao vivo...','chat.filterMessages':'Filtrar mensagens...','chat.waiting':'Aguardando mensagens...',
+    'capture.startReconnect':'INICIAR / RECONECTAR CAPTURA','capture.stop':'ENCERRAR CAPTURA','capture.started':'Captura iniciada.','capture.stopped':'Captura encerrada.','capture.alreadyActive':'A captura já está ativa.','capture.alreadyStopping':'A captura já está encerrando.','capture.noChannel':'Informe ao menos um canal.','capture.noneStarted':'Nenhuma nova captura iniciada.',
+    'settings.title':'CONFIGURAÇÕES','settings.languageTitle':'IDIOMA','settings.languageDescription':'Escolha o idioma da interface.','settings.language':'Idioma da interface','settings.localServer':'Servidor local','settings.localOnly':'Apenas conexões locais são aceitas.','settings.noCredentials':'Nenhuma credencial de plataforma é armazenada.',
+    'editor.title':'OVERLAY EDITOR','editor.subtitle':'Edite seu overlay em tempo real','editor.autoPreview':'AUTO PREVIEW','editor.reset':'RESET','editor.apply':'APLICAR','editor.preview':'PREVIEW REAL DO OBS','editor.previewTitle':'Prévia real do overlay','editor.activeLoaded':'Versão ativa carregada','editor.applied':'Overlay aplicado no OBS','editor.updated':'Overlay atualizado em tempo real',
+    'form.youtube':'URL ou ID da live','form.tiktok':'@ do canal','form.channel':'Nome ou URL do canal','status.disconnected':'Desconectado','status.connected':'Conectado','status.connecting':'Conectando...','status.message':'{count} mensagem','status.messages':'{count} mensagens','activity.started':'Aplicação v1.2.0 iniciada','api.failure':'Falha na operação','api.unavailable':'Dashboard indisponível.'
+  },
+  en:{
+    'nav.dashboard':'Dashboard','nav.platforms':'Platforms','nav.editor':'Overlay Editor','nav.chat':'Live Chat','nav.logs':'Logs','nav.settings':'Settings',
+    'page.dashboard.title':'DASHBOARD','page.dashboard.subtitle':'System overview','page.platforms.title':'PLATFORMS','page.platforms.subtitle':'Configure monitored channels','page.editor.title':'OVERLAY EDITOR','page.editor.subtitle':'Customize the OBS overlay','page.chat.title':'LIVE CHAT','page.chat.subtitle':'Received messages','page.logs.title':'LOGS','page.logs.subtitle':'Events and diagnostics','page.settings.title':'SETTINGS','page.settings.subtitle':'Local preferences',
+    'engine.online':'Engine Online','engine.start':'START ENGINE','engine.stop':'STOP ENGINE','app.close':'Close application',
+    'server.title':'OVERLAY SERVER','server.running':'Overlay server running','server.copy':'COPY LINK','server.copied':'OBS link copied','server.copyFailed':'Could not copy the link.',
+    'stats.title':'STATISTICS','stats.messages':'Total messages','stats.platforms':'Active platforms','stats.session':'Session time','stats.resources':'CPU / Memory','activity.title':'RECENT ACTIVITY',
+    'chat.title':'LIVE CHAT','chat.subtitle':'Messages received in real time','chat.filter':'Filter live chat...','chat.filterMessages':'Filter messages...','chat.waiting':'Waiting for messages...',
+    'capture.startReconnect':'START / RECONNECT CAPTURE','capture.stop':'STOP CAPTURE','capture.started':'Capture started.','capture.stopped':'Capture stopped.','capture.alreadyActive':'Capture is already active.','capture.alreadyStopping':'Capture is already stopping.','capture.noChannel':'Enter at least one channel.','capture.noneStarted':'No new capture was started.',
+    'settings.title':'SETTINGS','settings.languageTitle':'LANGUAGE','settings.languageDescription':'Choose the interface language.','settings.language':'Interface language','settings.localServer':'Local server','settings.localOnly':'Only local connections are accepted.','settings.noCredentials':'No platform credentials are stored.',
+    'editor.title':'OVERLAY EDITOR','editor.subtitle':'Edit your overlay in real time','editor.autoPreview':'AUTO PREVIEW','editor.reset':'RESET','editor.apply':'APPLY','editor.preview':'REAL OBS PREVIEW','editor.previewTitle':'Real overlay preview','editor.activeLoaded':'Active version loaded','editor.applied':'Overlay applied to OBS','editor.updated':'Overlay updated in real time',
+    'form.youtube':'Live URL or ID','form.tiktok':'Channel @handle','form.channel':'Channel name or URL','status.disconnected':'Disconnected','status.connected':'Connected','status.connecting':'Connecting...','status.message':'{count} message','status.messages':'{count} messages','activity.started':'Netrunner v1.2.0 started','api.failure':'Operation failed','api.unavailable':'Dashboard unavailable.'
+  },
+  es:{
+    'nav.dashboard':'Panel','nav.platforms':'Plataformas','nav.editor':'Editor de Overlay','nav.chat':'Chat en Vivo','nav.logs':'Registros','nav.settings':'Configuración',
+    'page.dashboard.title':'PANEL','page.dashboard.subtitle':'Vista general del sistema','page.platforms.title':'PLATAFORMAS','page.platforms.subtitle':'Configura los canales supervisados','page.editor.title':'EDITOR DE OVERLAY','page.editor.subtitle':'Personaliza el overlay de OBS','page.chat.title':'CHAT EN VIVO','page.chat.subtitle':'Mensajes recibidos','page.logs.title':'REGISTROS','page.logs.subtitle':'Eventos y diagnósticos','page.settings.title':'CONFIGURACIÓN','page.settings.subtitle':'Preferencias locales',
+    'engine.online':'Motor en Línea','engine.start':'INICIAR MOTOR','engine.stop':'DETENER MOTOR','app.close':'Cerrar aplicación',
+    'server.title':'SERVIDOR DE OVERLAY','server.running':'Servidor de overlay en ejecución','server.copy':'COPIAR ENLACE','server.copied':'Enlace de OBS copiado','server.copyFailed':'No se pudo copiar el enlace.',
+    'stats.title':'ESTADÍSTICAS','stats.messages':'Mensajes totales','stats.platforms':'Plataformas activas','stats.session':'Tiempo de sesión','stats.resources':'CPU / Memoria','activity.title':'ACTIVIDAD RECIENTE',
+    'chat.title':'CHAT EN VIVO','chat.subtitle':'Mensajes recibidos en tiempo real','chat.filter':'Filtrar chat en vivo...','chat.filterMessages':'Filtrar mensajes...','chat.waiting':'Esperando mensajes...',
+    'capture.startReconnect':'INICIAR / RECONECTAR CAPTURA','capture.stop':'DETENER CAPTURA','capture.started':'Captura iniciada.','capture.stopped':'Captura detenida.','capture.alreadyActive':'La captura ya está activa.','capture.alreadyStopping':'La captura ya se está deteniendo.','capture.noChannel':'Introduce al menos un canal.','capture.noneStarted':'No se inició ninguna captura nueva.',
+    'settings.title':'CONFIGURACIÓN','settings.languageTitle':'IDIOMA','settings.languageDescription':'Elige el idioma de la interfaz.','settings.language':'Idioma de la interfaz','settings.localServer':'Servidor local','settings.localOnly':'Solo se aceptan conexiones locales.','settings.noCredentials':'No se almacenan credenciales de plataformas.',
+    'editor.title':'EDITOR DE OVERLAY','editor.subtitle':'Edita tu overlay en tiempo real','editor.autoPreview':'VISTA AUTOMÁTICA','editor.reset':'RESTABLECER','editor.apply':'APLICAR','editor.preview':'VISTA REAL DE OBS','editor.previewTitle':'Vista real del overlay','editor.activeLoaded':'Versión activa cargada','editor.applied':'Overlay aplicado en OBS','editor.updated':'Overlay actualizado en tiempo real',
+    'form.youtube':'URL o ID del directo','form.tiktok':'@ del canal','form.channel':'Nombre o URL del canal','status.disconnected':'Desconectado','status.connected':'Conectado','status.connecting':'Conectando...','status.message':'{count} mensaje','status.messages':'{count} mensajes','activity.started':'Netrunner v1.2.0 iniciado','api.failure':'Error en la operación','api.unavailable':'Panel no disponible.'
+  },
+  fr:{
+    'nav.dashboard':'Tableau de bord','nav.platforms':'Plateformes','nav.editor':'Éditeur d’Overlay','nav.chat':'Chat en Direct','nav.logs':'Journaux','nav.settings':'Paramètres',
+    'page.dashboard.title':'TABLEAU DE BORD','page.dashboard.subtitle':'Vue d’ensemble du système','page.platforms.title':'PLATEFORMES','page.platforms.subtitle':'Configurez les chaînes surveillées','page.editor.title':'ÉDITEUR D’OVERLAY','page.editor.subtitle':'Personnalisez l’overlay OBS','page.chat.title':'CHAT EN DIRECT','page.chat.subtitle':'Messages reçus','page.logs.title':'JOURNAUX','page.logs.subtitle':'Événements et diagnostics','page.settings.title':'PARAMÈTRES','page.settings.subtitle':'Préférences locales',
+    'engine.online':'Moteur en Ligne','engine.start':'DÉMARRER LE MOTEUR','engine.stop':'ARRÊTER LE MOTEUR','app.close':'Fermer l’application',
+    'server.title':'SERVEUR D’OVERLAY','server.running':'Serveur d’overlay en cours d’exécution','server.copy':'COPIER LE LIEN','server.copied':'Lien OBS copié','server.copyFailed':'Impossible de copier le lien.',
+    'stats.title':'STATISTIQUES','stats.messages':'Total des messages','stats.platforms':'Plateformes actives','stats.session':'Durée de session','stats.resources':'CPU / Mémoire','activity.title':'ACTIVITÉ RÉCENTE',
+    'chat.title':'CHAT EN DIRECT','chat.subtitle':'Messages reçus en temps réel','chat.filter':'Filtrer le chat en direct...','chat.filterMessages':'Filtrer les messages...','chat.waiting':'En attente de messages...',
+    'capture.startReconnect':'DÉMARRER / RECONNECTER','capture.stop':'ARRÊTER LA CAPTURE','capture.started':'Capture démarrée.','capture.stopped':'Capture arrêtée.','capture.alreadyActive':'La capture est déjà active.','capture.alreadyStopping':'La capture est déjà en cours d’arrêt.','capture.noChannel':'Indiquez au moins une chaîne.','capture.noneStarted':'Aucune nouvelle capture démarrée.',
+    'settings.title':'PARAMÈTRES','settings.languageTitle':'LANGUE','settings.languageDescription':'Choisissez la langue de l’interface.','settings.language':'Langue de l’interface','settings.localServer':'Serveur local','settings.localOnly':'Seules les connexions locales sont acceptées.','settings.noCredentials':'Aucun identifiant de plateforme n’est stocké.',
+    'editor.title':'ÉDITEUR D’OVERLAY','editor.subtitle':'Modifiez votre overlay en temps réel','editor.autoPreview':'APERÇU AUTOMATIQUE','editor.reset':'RÉINITIALISER','editor.apply':'APPLIQUER','editor.preview':'APERÇU RÉEL OBS','editor.previewTitle':'Aperçu réel de l’overlay','editor.activeLoaded':'Version active chargée','editor.applied':'Overlay appliqué dans OBS','editor.updated':'Overlay mis à jour en temps réel',
+    'form.youtube':'URL ou ID du direct','form.tiktok':'@ de la chaîne','form.channel':'Nom ou URL de la chaîne','status.disconnected':'Déconnecté','status.connected':'Connecté','status.connecting':'Connexion...','status.message':'{count} message','status.messages':'{count} messages','activity.started':'Netrunner v1.2.0 démarré','api.failure':'Échec de l’opération','api.unavailable':'Tableau de bord indisponible.'
+  }
+};
+const pageMeta={dashboard:['page.dashboard.title','page.dashboard.subtitle'],platforms:['page.platforms.title','page.platforms.subtitle'],editor:['page.editor.title','page.editor.subtitle'],chat:['page.chat.title','page.chat.subtitle'],logs:['page.logs.title','page.logs.subtitle'],settings:['page.settings.title','page.settings.subtitle']};
+const backendKeys={'Aplicação v1.2.0 iniciada':'activity.started','Captura iniciada':'capture.started','Captura iniciada.':'capture.started','Captura encerrada':'capture.stopped','Captura encerrada.':'capture.stopped','A captura já está ativa.':'capture.alreadyActive','A captura já está encerrando.':'capture.alreadyStopping','Informe ao menos um canal.':'capture.noChannel','Nenhuma nova captura iniciada.':'capture.noneStarted','Overlay atualizado em tempo real':'editor.updated','Overlay aplicado no OBS.':'editor.applied','Dashboard indisponível.':'api.unavailable'};
+let currentLanguage=localStorage.getItem('netrunner.language')||'pt';
+if(!translations[currentLanguage])currentLanguage='pt';
+let currentPage='dashboard',latestState=null,overlaySource={html:'',css:'',js:''},toastTimer;
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+function t(key,values={}){let value=(translations[currentLanguage]&&translations[currentLanguage][key])||translations.pt[key]||key;Object.entries(values).forEach(([name,replacement])=>value=value.replace(`{${name}}`,replacement));return value}
+function localizeBackend(value){const key=backendKeys[value];return key?t(key):value}
+function messageCount(count){return t(count===1?'status.message':'status.messages',{count})}
+function statusText(value){const map={Desconectado:'status.disconnected',Conectado:'status.connected','Conectando...':'status.connecting'};return map[value]?t(map[value]):localizeBackend(value)}
 function toast(message){const el=$('#toast');el.textContent=message;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2600)}
-async function api(url,options={}){const response=await fetch(url,{headers:{'Content-Type':'application/json'},...options});const data=await response.json();if(!response.ok)throw new Error(data.message||data.error||'Falha na operação');return data}
+async function api(url,options={}){const response=await fetch(url,{headers:{'Content-Type':'application/json'},...options});const data=await response.json();if(!response.ok)throw new Error(localizeBackend(data.message||data.error)||t('api.failure'));return data}
 function logo(platform){const p=platforms[platform];return `<span class="platform-logo" style="--accent:${p.color}">${p.icon}</span>`}
 function initStatic(){
-  $('#platformCards').innerHTML=Object.entries(platforms).map(([id,p])=>`<div class="platform-card" id="card-${id}" style="--accent:${p.color}"><div class="name">${logo(id)} ${p.name}</div><div class="status"><span class="dot"></span><span data-status>Desconectado</span></div><div class="count" data-count>0 mensagens</div></div>`).join('');
-  $('#platformFields').innerHTML=Object.entries(platforms).map(([id,p])=>`<div class="panel form-card" style="--accent:${p.color}"><label>${p.name}</label><input id="channel-${id}" placeholder="${id==='youtube'?'URL ou ID da live':id==='tiktok'?'@ do canal':'Nome ou URL do canal'}"></div>`).join('');
+  $('#platformCards').innerHTML=Object.entries(platforms).map(([id,p])=>`<div class="platform-card" id="card-${id}" style="--accent:${p.color}"><div class="name">${logo(id)} ${p.name}</div><div class="status"><span class="dot"></span><span data-status></span></div><div class="count" data-count></div></div>`).join('');
+  $('#platformFields').innerHTML=Object.entries(platforms).map(([id,p])=>`<div class="panel form-card" style="--accent:${p.color}"><label>${p.name}</label><input id="channel-${id}"></div>`).join('');
   mountEditor($('#dashboardEditor')); mountEditor($('#fullEditor'));
 }
 function mountEditor(host){host.appendChild($('#editorTemplate').content.cloneNode(true));host.querySelectorAll('.tab').forEach(btn=>btn.onclick=()=>{host.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===btn));host.querySelectorAll('textarea').forEach(x=>x.classList.toggle('active',x.dataset.code===btn.dataset.tab))});host.querySelectorAll('textarea').forEach(el=>el.addEventListener('input',()=>{syncEditors(host);if(host.querySelector('[data-auto]').checked)debouncedPreview(host)}));host.querySelector('[data-apply]').onclick=()=>applyOverlay(host);host.querySelector('[data-reset]').onclick=loadOverlay;host.querySelector('[data-auto]').onchange=()=>renderPreview(host);}
@@ -188,18 +249,22 @@ function readEditor(host){return Object.fromEntries(['html','css','js'].map(k=>[
 function compose(source){return `<!doctype html><html><head><meta charset="utf-8"><base href="http://127.0.0.1:5000/"><style>${source.css}\nhtml,body{background-color:#061126!important;background-image:linear-gradient(45deg,#08182f 25%,transparent 25%),linear-gradient(-45deg,#08182f 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#08182f 75%),linear-gradient(-45deg,transparent 75%,#08182f 75%)!important;background-size:20px 20px!important;background-position:0 0,0 10px,10px -10px,-10px 0!important}</style></head><body>${source.html}<script>${source.js}<\/script></body></html>`}
 function renderPreview(host,active=false){const frame=host.querySelector('[data-preview]');if(active){frame.removeAttribute('srcdoc');frame.src='/overlay?preview='+Date.now()}else{frame.srcdoc=compose(readEditor(host))}}
 let previewTimer;function debouncedPreview(host){clearTimeout(previewTimer);previewTimer=setTimeout(()=>{$$('.editor-panel').forEach(panel=>renderPreview(panel))},220)}
-async function loadOverlay(){try{overlaySource=await api('/api/overlay');$$('[data-code]').forEach(el=>el.value=overlaySource[el.dataset.code]);$$('.editor-panel').forEach(host=>renderPreview(host,true));toast('Versão ativa carregada')}catch(e){toast(e.message)}}
-async function applyOverlay(host){try{const source=readEditor(host);await api('/api/overlay',{method:'POST',body:JSON.stringify(source)});overlaySource=source;syncEditors(host);$$('.editor-panel').forEach(panel=>renderPreview(panel,true));toast('Overlay aplicado no OBS')}catch(e){toast(e.message)}}
-function renderMessages(target,messages,query=''){const filtered=messages.filter(m=>!query||`${m.user} ${m.message}`.toLowerCase().includes(query.toLowerCase()));target.innerHTML=filtered.length?filtered.slice(-30).reverse().map(m=>`<article class="message"><div class="message-head">${logo(m.platform)}<strong>${escapeHtml(m.user)}</strong><time>${m.timestamp}</time></div><p>${escapeHtml(m.message)}</p></article>`).join(''):'<div class="empty">Aguardando mensagens...</div>'}
+async function loadOverlay(){try{overlaySource=await api('/api/overlay');$$('[data-code]').forEach(el=>el.value=overlaySource[el.dataset.code]);$$('.editor-panel').forEach(host=>renderPreview(host,true));toast(t('editor.activeLoaded'))}catch(e){toast(e.message)}}
+async function applyOverlay(host){try{const source=readEditor(host);await api('/api/overlay',{method:'POST',body:JSON.stringify(source)});overlaySource=source;syncEditors(host);$$('.editor-panel').forEach(panel=>renderPreview(panel,true));toast(t('editor.applied'))}catch(e){toast(e.message)}}
+function renderMessages(target,messages,query=''){const filtered=messages.filter(m=>!query||`${m.user} ${m.message}`.toLowerCase().includes(query.toLowerCase()));target.innerHTML=filtered.length?filtered.slice(-30).reverse().map(m=>`<article class="message"><div class="message-head">${logo(m.platform)}<strong>${escapeHtml(m.user)}</strong><time>${m.timestamp}</time></div><p>${escapeHtml(m.message)}</p></article>`).join(''):`<div class="empty">${t('chat.waiting')}</div>`}
 function escapeHtml(value){const el=document.createElement('span');el.textContent=value;return el.innerHTML}
-function renderState(state){latestState=state;Object.entries(state.platforms).forEach(([id,data])=>{const card=$(`#card-${id}`);card.classList.toggle('connected',data.connected);card.querySelector('[data-status]').textContent=data.status;card.querySelector('[data-count]').textContent=`${data.count} mensagens`;const field=$(`#channel-${id}`);if(field&&!field.matches(':focus')&&!field.value)field.value=data.channel||''});$('#engineBtn').textContent=state.capturing?'PARAR ENGINE':'INICIAR ENGINE';const s=state.stats;$('#stats').innerHTML=[[s.messages,'Total de mensagens'],[s.platforms,'Plataformas ativas'],[s.session,'Tempo de sessão'],[s.resources,'CPU / Memória']].map(x=>`<div class="stat"><b>${x[0]}</b><span>${x[1]}</span></div>`).join('');$('#activity').innerHTML=state.activity.map(x=>`<div class="activity-row"><time>${x.time}</time><i>•</i><span>${escapeHtml(x.text)}</span></div>`).join('');renderMessages($('#dashboardChat'),state.messages,$('#dashboardFilter').value);renderMessages($('#fullChat'),state.messages,$('#fullFilter').value);$('#logs').innerHTML=state.logs.map(x=>`<div><span style="color:var(--muted)">${x.time}</span> ${escapeHtml(x.text)}</div>`).join('')}
+function renderState(state){latestState=state;Object.entries(state.platforms).forEach(([id,data])=>{const card=$(`#card-${id}`);card.classList.toggle('connected',data.connected);card.querySelector('[data-status]').textContent=statusText(data.status);card.querySelector('[data-count]').textContent=messageCount(data.count);const field=$(`#channel-${id}`);if(field&&!field.matches(':focus')&&!field.value)field.value=data.channel||''});$('#engineBtn').textContent=state.capturing?t('engine.stop'):t('engine.start');const s=state.stats;$('#stats').innerHTML=[[s.messages,t('stats.messages')],[s.platforms,t('stats.platforms')],[s.session,t('stats.session')],[s.resources,t('stats.resources')]].map(x=>`<div class="stat"><b>${x[0]}</b><span>${x[1]}</span></div>`).join('');$('#activity').innerHTML=state.activity.map(x=>`<div class="activity-row"><time>${x.time}</time><i>•</i><span>${escapeHtml(localizeBackend(x.text))}</span></div>`).join('');renderMessages($('#dashboardChat'),state.messages,$('#dashboardFilter').value);renderMessages($('#fullChat'),state.messages,$('#fullFilter').value);$('#logs').innerHTML=state.logs.map(x=>`<div><span style="color:var(--muted)">${x.time}</span> ${escapeHtml(localizeBackend(x.text))}</div>`).join('')}
 async function refresh(){try{renderState(await api('/api/state'))}catch(e){console.error(e)}}
-async function capture(start){try{if(start){const channels=Object.fromEntries(Object.keys(platforms).map(id=>[id,$(`#channel-${id}`).value]));toast((await api('/api/capture',{method:'POST',body:JSON.stringify({channels})})).message)}else toast((await api('/api/capture/stop',{method:'POST',body:'{}'})).message);await refresh()}catch(e){toast(e.message)}}
-$$('.nav').forEach(btn=>btn.onclick=()=>{$$('.nav').forEach(x=>x.classList.toggle('active',x===btn));$$('.page').forEach(x=>x.classList.toggle('active',x.id===`page-${btn.dataset.page}`));$('#pageTitle').textContent=pageMeta[btn.dataset.page][0];$('#pageSubtitle').textContent=pageMeta[btn.dataset.page][1];if(btn.dataset.page==='editor')$$('#fullEditor [data-preview]').forEach(()=>renderPreview($('#fullEditor'),true))});
+async function capture(start){try{if(start){const channels=Object.fromEntries(Object.keys(platforms).map(id=>[id,$(`#channel-${id}`).value]));toast(localizeBackend((await api('/api/capture',{method:'POST',body:JSON.stringify({channels})})).message))}else toast(localizeBackend((await api('/api/capture/stop',{method:'POST',body:'{}'})).message));await refresh()}catch(e){toast(e.message)}}
+function setPage(page){currentPage=page;$$('.nav').forEach(x=>x.classList.toggle('active',x.dataset.page===page));$$('.page').forEach(x=>x.classList.toggle('active',x.id===`page-${page}`));$('#pageTitle').textContent=t(pageMeta[page][0]);$('#pageSubtitle').textContent=t(pageMeta[page][1]);if(page==='editor')renderPreview($('#fullEditor'),true)}
+function applyTranslations(root=document){root.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=t(el.dataset.i18n));root.querySelectorAll('[data-i18n-placeholder]').forEach(el=>el.placeholder=t(el.dataset.i18nPlaceholder));root.querySelectorAll('[data-i18n-title]').forEach(el=>el.title=t(el.dataset.i18nTitle))}
+function applyLanguage(language){currentLanguage=translations[language]?language:'pt';localStorage.setItem('netrunner.language',currentLanguage);document.documentElement.lang=currentLanguage==='pt'?'pt-BR':currentLanguage;$('#languageSelect').value=currentLanguage;applyTranslations();const placeholderKeys={youtube:'form.youtube',tiktok:'form.tiktok',twitch:'form.channel',kick:'form.channel'};Object.entries(placeholderKeys).forEach(([id,key])=>{$(`#channel-${id}`).placeholder=t(key)});setPage(currentPage);if(latestState)renderState(latestState)}
+$$('.nav').forEach(btn=>btn.onclick=()=>setPage(btn.dataset.page));
 $('#engineBtn').onclick=()=>capture(!(latestState&&latestState.capturing));$('#startCapture').onclick=()=>capture(true);$('#stopCapture').onclick=()=>capture(false);$('#dashboardFilter').oninput=()=>latestState&&renderState(latestState);$('#fullFilter').oninput=()=>latestState&&renderState(latestState);
-$('#copyLink').onclick=async()=>{const link='http://127.0.0.1:5000/overlay';try{await navigator.clipboard.writeText(link);toast('Link do OBS copiado')}catch{if(window.pywebview)await window.pywebview.api.copy_obs_link();toast('Link do OBS copiado')}};
+$('#languageSelect').onchange=event=>applyLanguage(event.target.value);
+$('#copyLink').onclick=async()=>{const link='http://127.0.0.1:5000/overlay';try{await navigator.clipboard.writeText(link);toast(t('server.copied'))}catch{toast(t('server.copyFailed'))}};
 $('#closeBtn').onclick=async()=>{if(window.pywebview)await window.pywebview.api.close_app();else window.close()};
-initStatic();loadOverlay();refresh();setInterval(refresh,1000);
+initStatic();applyLanguage(currentLanguage);loadOverlay();refresh();setInterval(refresh,1000);
 </script>
 </body>
 </html>

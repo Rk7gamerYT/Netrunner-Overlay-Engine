@@ -62,6 +62,11 @@ class DashboardTests(unittest.TestCase):
         client = engine.app.test_client()
         dashboard_response = client.get("/dashboard")
         self.assertEqual(dashboard_response.status_code, 200)
+        dashboard_html = dashboard_response.get_data(as_text=True)
+        self.assertIn('id="languageSelect"', dashboard_html)
+        self.assertIn("'netrunner.language'", dashboard_html)
+        for language in ("pt", "en", "es", "fr"):
+            self.assertIn(f'<option value="{language}">', dashboard_html)
         dashboard_response.close()
         response = client.get("/overlay")
         self.assertEqual(response.status_code, 200)
