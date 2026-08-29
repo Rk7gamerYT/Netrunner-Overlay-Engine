@@ -20,20 +20,20 @@ def run_server_process():
 
 class DesktopAPI:
     def __init__(self, server_process):
-        self.server_process = server_process
-        self.window = None
-        self.closed = False
+        self._server_process = server_process
+        self._window = None
+        self._closed = False
 
     def close_app(self):
         self.shutdown()
-        if self.window is not None:
-            self.window.destroy()
+        if self._window is not None:
+            self._window.destroy()
         return True
 
     def shutdown(self, *_):
-        if self.closed:
+        if self._closed:
             return
-        self.closed = True
+        self._closed = True
         try:
             request = urllib.request.Request(
                 "http://127.0.0.1:5000/api/shutdown",
@@ -44,11 +44,11 @@ class DesktopAPI:
             urllib.request.urlopen(request, timeout=1).close()
         except Exception:
             pass
-        if self.server_process.is_alive():
-            self.server_process.join(1.5)
-        if self.server_process.is_alive():
-            self.server_process.terminate()
-            self.server_process.join(1)
+        if self._server_process.is_alive():
+            self._server_process.join(1.5)
+        if self._server_process.is_alive():
+            self._server_process.terminate()
+            self._server_process.join(1)
 
 
 def wait_for_server(host="127.0.0.1", port=5000, timeout=10):
@@ -80,14 +80,14 @@ def main():
     window = webview.create_window(
         "Netrunner Overlay Engine v1.2.0",
         "http://127.0.0.1:5000/dashboard",
-        js_api=api,
         width=1540,
         height=960,
         min_size=(1180, 720),
         background_color="#020817",
         text_select=True,
     )
-    api.window = window
+    api._window = window
+    window.expose(api.close_app)
     window.events.closed += api.shutdown
 
     try:

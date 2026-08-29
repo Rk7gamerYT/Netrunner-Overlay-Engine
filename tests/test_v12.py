@@ -2,6 +2,7 @@ import unittest
 
 import engine
 from core.base_bot import BaseBot
+from main import DesktopAPI
 from ui.web_dashboard import WebDashboardController
 
 
@@ -22,6 +23,18 @@ class ThreadBridgeTests(unittest.TestCase):
         self.assertTrue(bot.wait(1000))
         self.assertEqual(received, [("tester", "hello", "twitch")])
         self.assertEqual(finished, [True])
+
+    def test_desktop_api_does_not_expose_native_objects(self):
+        class FakeProcess:
+            def is_alive(self):
+                return False
+
+        api = DesktopAPI(FakeProcess())
+        public_data = [
+            name for name in dir(api)
+            if not name.startswith("_") and not callable(getattr(api, name))
+        ]
+        self.assertEqual(public_data, [])
 
 
 class DashboardTests(unittest.TestCase):
