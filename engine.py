@@ -3,7 +3,8 @@ import sys
 import threading
 import time
 
-from flask import Flask, jsonify, render_template_string, request
+from flask import Flask, jsonify, render_template_string, request, send_file, send_from_directory
+from waitress import serve
 
 def resource_path(relative_path):
     """Resolve recursos tanto no código-fonte quanto no executável PyInstaller."""
@@ -31,6 +32,13 @@ MAX_MESSAGES = 50
 CHAT_LOCK = threading.Lock()
 
 MESSAGE_SEQUENCE = int(time.time() * 1000) * 1000
+
+DASHBOARD_CONTROLLER = None
+
+
+def set_dashboard_controller(controller):
+    global DASHBOARD_CONTROLLER
+    DASHBOARD_CONTROLLER = controller
 
 
 # ==========================================
@@ -397,6 +405,8 @@ OVERLAY_TEMPLATE = """
 
 {{ css|safe }}
 
+{{ preview_css|safe }}
+
 </style>
 
 </head>
@@ -425,6 +435,19 @@ OVERLAY_TEMPLATE = """
 @app.route("/overlay")
 def overlay():
 
+    preview_css = """
+    html, body {
+        background-color: #061126 !important;
+        background-image:
+            linear-gradient(45deg, #08182f 25%, transparent 25%),
+            linear-gradient(-45deg, #08182f 25%, transparent 25%),
+            linear-gradient(45deg, transparent 75%, #08182f 75%),
+            linear-gradient(-45deg, transparent 75%, #08182f 75%) !important;
+        background-size: 20px 20px !important;
+        background-position: 0 0, 0 10px, 10px -10px, -10px 0 !important;
+    }
+    """ if request.args.get("preview") else ""
+
     return render_template_string(
 
         OVERLAY_TEMPLATE,
@@ -433,7 +456,9 @@ def overlay():
 
         css=LIVE_CSS,
 
-        js=LIVE_JS
+        js=LIVE_JS,
+
+        preview_css=preview_css
     )
 
 
@@ -466,23 +491,66 @@ def chat():
     return response
 
 
+@app.route("/dashboard")
+def dashboard():
+    return send_file(resource_path("ui/dashboard.html"))
+
+
+@app.route("/assets/<path:filename>")
+def dashboard_asset(filename):
+    return send_from_directory(resource_path("assets"), filename)
+
+
+@app.route("/api/state")
+def dashboard_state():
+    if DASHBOARD_CONTROLLER is None:
+        return jsonify({"error": "Dashboard indisponível."}), 503
+    return jsonify(DASHBOARD_CONTROLLER.snapshot())
+
+
+@app.route("/api/capture", methods=["POST"])
+def dashboard_start_capture():
+    if DASHBOARD_CONTROLLER is None:
+        return jsonify({"ok": False, "message": "Dashboard indisponível."}), 503
+    payload = request.get_json(silent=True) or {}
+    result = DASHBOARD_CONTROLLER.start_capture(payload.get("channels", {}))
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@app.route("/api/capture/stop", methods=["POST"])
+def dashboard_stop_capture():
+    if DASHBOARD_CONTROLLER is None:
+        return jsonify({"ok": False, "message": "Dashboard indisponível."}), 503
+    return jsonify(DASHBOARD_CONTROLLER.stop_capture())
+
+
+@app.route("/api/overlay", methods=["GET", "POST"])
+def dashboard_overlay_source():
+    if DASHBOARD_CONTROLLER is None:
+        return jsonify({"ok": False, "message": "Dashboard indisponível."}), 503
+    if request.method == "POST":
+        return jsonify(DASHBOARD_CONTROLLER.apply_overlay(request.get_json(silent=True) or {}))
+    return jsonify(DASHBOARD_CONTROLLER.overlay_source())
+
+
+@app.route("/api/shutdown", methods=["POST"])
+def dashboard_shutdown():
+    if DASHBOARD_CONTROLLER is not None:
+        DASHBOARD_CONTROLLER.shutdown()
+    return jsonify({"ok": True})
+
+
 # ==========================================
 # FLASK THREAD
 # ==========================================
 
 def run_flask():
-
-    app.run(
-
+    serve(
+        app,
         host="127.0.0.1",
-
         port=5000,
-
-        debug=False,
-
-        threaded=True,
-
-        use_reloader=False
+        threads=8,
+        ident=None,
     )
 
 

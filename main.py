@@ -1,42 +1,103 @@
-import sys
+import socket
+import multiprocessing
+import time
+import urllib.request
 
-import dearpygui.dearpygui as dpg
+import webview
 
-from engine import resource_path
-from ui.dashboard import DashboardApp
+import engine
+from ui.web_dashboard import WebDashboardController
+
+
+def run_server_process():
+    controller = WebDashboardController()
+    engine.set_dashboard_controller(controller)
+    try:
+        engine.run_flask()
+    finally:
+        controller.shutdown()
+
+
+class DesktopAPI:
+    def __init__(self, server_process):
+        self.server_process = server_process
+        self.window = None
+        self.closed = False
+
+    def close_app(self):
+        self.shutdown()
+        if self.window is not None:
+            self.window.destroy()
+        return True
+
+    def shutdown(self, *_):
+        if self.closed:
+            return
+        self.closed = True
+        try:
+            request = urllib.request.Request(
+                "http://127.0.0.1:5000/api/shutdown",
+                data=b"{}",
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            urllib.request.urlopen(request, timeout=1).close()
+        except Exception:
+            pass
+        if self.server_process.is_alive():
+            self.server_process.join(1.5)
+        if self.server_process.is_alive():
+            self.server_process.terminate()
+            self.server_process.join(1)
+
+
+def wait_for_server(host="127.0.0.1", port=5000, timeout=10):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            with socket.create_connection((host, port), timeout=0.35):
+                return True
+        except OSError:
+            time.sleep(0.1)
+    return False
 
 
 def main():
-    dpg.create_context()
+    multiprocessing.freeze_support()
+    server_process = multiprocessing.Process(
+        target=run_server_process,
+        name="NetrunnerOverlayServer",
+        daemon=True,
+    )
+    server_process.start()
 
-    icon = resource_path("assets/netrunner.ico")
+    if not wait_for_server(timeout=20):
+        server_process.terminate()
+        server_process.join(1)
+        raise RuntimeError("Não foi possível iniciar o servidor local na porta 5000.")
 
-    dpg.create_viewport(
-        title="Netrunner Overlay Engine v1.2.0",
+    api = DesktopAPI(server_process)
+    window = webview.create_window(
+        "Netrunner Overlay Engine v1.2.0",
+        "http://127.0.0.1:5000/dashboard",
+        js_api=api,
         width=1540,
         height=960,
-        min_width=1180,
-        min_height=720,
-        small_icon=icon,
-        large_icon=icon,
-        vsync=True,
+        min_size=(1180, 720),
+        background_color="#020817",
+        text_select=True,
     )
-
-    dashboard = DashboardApp()
-    dashboard.build()
-
-    dpg.setup_dearpygui()
-    dpg.show_viewport()
-    dpg.set_primary_window("primary_window", True)
-    dpg.set_exit_callback(dashboard.shutdown)
+    api.window = window
+    window.events.closed += api.shutdown
 
     try:
-        while dpg.is_dearpygui_running():
-            dashboard.tick()
-            dpg.render_dearpygui_frame()
+        webview.start(
+            debug=False,
+            private_mode=True,
+            icon=engine.resource_path("assets/netrunner.ico"),
+        )
     finally:
-        dashboard.shutdown()
-        dpg.destroy_context()
+        api.shutdown()
 
 
 if __name__ == "__main__":

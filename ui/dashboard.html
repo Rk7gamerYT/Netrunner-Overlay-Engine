@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Netrunner Overlay Engine</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg:#020817; --panel:#061126; --panel2:#08162e; --line:#17345a;
+      --text:#edf3ff; --muted:#8390aa; --cyan:#11d8f4; --pink:#e516a4;
+      --green:#19e660; --twitch:#9146ff; --youtube:#ff2447; --tiktok:#ff2d91; --kick:#53fc18;
+    }
+    * { box-sizing:border-box; }
+    html,body { margin:0; min-height:100%; background:var(--bg); color:var(--text); font-family:"Segoe UI",Arial,sans-serif; }
+    button,input,textarea { font:inherit; }
+    button { color:var(--text); cursor:pointer; }
+    .app { min-height:100vh; display:grid; grid-template-columns:266px 1fr; }
+    .sidebar { position:fixed; inset:0 auto 0 0; width:266px; padding:26px 18px; border-right:1px solid #472058; background:linear-gradient(180deg,#030817 0%,#03091a 100%); display:flex; flex-direction:column; z-index:5; }
+    .brand { display:flex; align-items:center; gap:13px; padding:0 6px 26px; }
+    .brand img { width:69px; height:69px; object-fit:contain; filter:drop-shadow(0 0 10px #0fdcf455); }
+    .brand strong { display:block; font-size:20px; letter-spacing:.4px; }
+    .brand span { color:var(--cyan); font:12px Consolas,monospace; letter-spacing:1.6px; }
+    nav { display:grid; gap:10px; margin-top:18px; }
+    .nav { border:1px solid transparent; background:transparent; text-align:left; padding:16px 14px; border-radius:6px; font-size:16px; }
+    .nav i { display:inline-grid; place-items:center; width:26px; margin-right:9px; color:#b68aff; font-style:normal; }
+    .nav:hover { background:#0b1830; }
+    .nav.active { border-color:#7734ff; background:linear-gradient(100deg,#063f99,#ad0da7); box-shadow:0 0 20px #d419b333; }
+    .version { margin-top:auto; display:flex; align-items:center; gap:11px; color:#aeb9cd; font-size:13px; }
+    .version img { width:46px; height:46px; }
+    .main { grid-column:2; padding:28px 28px 40px 34px; min-width:0; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; min-height:56px; }
+    .title h1 { margin:0; font-size:24px; font-weight:600; letter-spacing:.5px; }
+    .title p { margin:3px 0 0; color:var(--muted); }
+    .engine { display:flex; align-items:center; gap:14px; }
+    .online { color:var(--green); font-size:13px; }
+    .online::after { content:""; display:inline-block; width:8px; height:8px; margin-left:8px; background:var(--green); border-radius:50%; box-shadow:0 0 8px var(--green); }
+    .btn { border:1px solid var(--line); background:#0a1831; padding:10px 20px; border-radius:6px; font-weight:600; }
+    .btn:hover { border-color:var(--cyan); color:var(--cyan); }
+    .btn-primary { border-color:#d82b8b; background:linear-gradient(180deg,#28102b,#10122a); min-width:146px; }
+    .btn-hot { border-color:#ff3ca8; background:linear-gradient(100deg,#bd0a7d,#e82b98); }
+    .btn-icon { padding:10px 12px; color:#7ccfff; }
+    .page { display:none; }
+    .page.active { display:block; }
+    .dashboard-grid { display:grid; grid-template-columns:minmax(620px,1fr) minmax(360px,470px); gap:20px; align-items:start; }
+    .left-stack { display:grid; gap:14px; min-width:0; }
+    .cards { display:grid; grid-template-columns:repeat(4,minmax(135px,1fr)); gap:12px; }
+    .platform-card,.panel { border:1px solid var(--line); background:linear-gradient(145deg,#071329,#050d20); border-radius:10px; box-shadow:inset 0 0 22px #071126; }
+    .platform-card { padding:17px 18px; min-height:143px; border-color:color-mix(in srgb,var(--accent) 62%,#17345a); }
+    .platform-card .name { display:flex; align-items:center; gap:10px; font-weight:700; }
+    .platform-logo { display:grid; place-items:center; width:36px; height:36px; border-radius:8px; color:#fff; background:color-mix(in srgb,var(--accent) 70%,#070c1b); box-shadow:0 0 15px color-mix(in srgb,var(--accent) 45%,transparent); font-weight:800; }
+    .platform-card .status { margin-top:19px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:8px; background:#647287; }
+    .connected .dot { background:var(--green); box-shadow:0 0 8px var(--green); }
+    .connected .status { color:var(--green); }
+    .platform-card .count { margin-top:9px; color:#75c7e7; }
+    .panel { padding:18px 20px; }
+    .panel-title { display:flex; align-items:center; gap:10px; font-weight:700; letter-spacing:.3px; }
+    .panel-title .glyph { color:var(--cyan); }
+    .sub { color:var(--muted); font-size:13px; margin:5px 0 0 46px; }
+    .server-row { display:flex; align-items:center; gap:20px; margin-top:18px; flex-wrap:wrap; }
+    .server-url { color:var(--cyan); font:20px Consolas,monospace; text-shadow:0 0 10px #0adcf244; }
+    .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:18px; margin-top:16px; }
+    .stat { text-align:center; border:1px solid #142d4d; border-radius:7px; padding:9px 6px; background:#071329; }
+    .stat b { display:block; font-size:20px; }
+    .stat span { color:var(--muted); font-size:12px; }
+    .activity { display:grid; gap:7px; margin-top:13px; font-size:12px; max-height:105px; overflow:hidden; }
+    .activity-row { display:grid; grid-template-columns:62px 9px 1fr; gap:8px; }
+    .activity-row time { color:var(--muted); }
+    .activity-row i { color:var(--pink); font-style:normal; }
+    .chat-panel { height:571px; display:flex; flex-direction:column; }
+    .chat-head { padding-bottom:15px; border-bottom:1px solid #193251; }
+    .chat-list { flex:1; min-height:0; overflow:auto; margin-top:8px; scrollbar-color:#244a70 transparent; }
+    .message { padding:12px 4px 14px; border-bottom:1px solid #183252; }
+    .message-head { display:grid; grid-template-columns:34px 1fr auto; align-items:center; gap:10px; }
+    .message .platform-logo { width:29px; height:29px; border-radius:5px; font-size:12px; }
+    .message strong { font-size:13px; }
+    .message time { color:#718099; font-size:11px; }
+    .message p { margin:3px 0 0 44px; color:#cfd8e9; font-size:13px; overflow-wrap:anywhere; }
+    .empty { color:var(--muted); text-align:center; margin-top:80px; }
+    .filter { display:flex; gap:8px; padding-top:13px; }
+    input,textarea { border:1px solid #203b62; background:#061127; color:var(--text); border-radius:6px; outline:none; }
+    input:focus,textarea:focus { border-color:var(--cyan); box-shadow:0 0 0 2px #11d8f41c; }
+    input { padding:11px 13px; width:100%; }
+    .editor-panel { grid-column:1/-1; margin-top:14px; padding:13px 14px 16px; }
+    .editor-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+    .editor-actions { display:flex; align-items:center; gap:12px; font-size:12px; color:#aab6ca; }
+    .switch { position:relative; width:35px; height:19px; background:#183252; border-radius:12px; }
+    .switch input { display:none; }
+    .switch span { position:absolute; top:2px; left:2px; width:15px; height:15px; border-radius:50%; background:#758399; transition:.2s; }
+    .switch input:checked + span { left:18px; background:#fff; box-shadow:0 0 9px var(--cyan); }
+    .switch:has(input:checked) { background:#129edb; }
+    .editor-grid { display:grid; grid-template-columns:minmax(480px,1.3fr) minmax(340px,.8fr); gap:20px; }
+    .tabs { display:flex; gap:8px; border-bottom:1px solid #1d385c; }
+    .tab { border:0; background:transparent; padding:9px 22px; color:#9eabc1; }
+    .tab.active { color:var(--cyan); border-bottom:2px solid var(--cyan); }
+    textarea { display:none; width:100%; height:250px; padding:12px; resize:none; border-radius:0 0 6px 6px; font:12px/1.5 Consolas,monospace; tab-size:2; }
+    textarea.active { display:block; }
+    .preview-label { font-size:12px; font-weight:700; margin:10px 0; }
+    .preview-shell { position:relative; height:291px; border:1px solid #1e3a5e; border-radius:8px; overflow:hidden; background:repeating-conic-gradient(#08152b 0 25%,#061126 0 50%) 50%/18px 18px; }
+    .preview-shell iframe { width:100%; height:100%; border:0; background:transparent; }
+    .preview-badge { position:absolute; top:8px; right:8px; padding:4px 7px; background:#031020d9; border:1px solid #1b456c; border-radius:4px; color:var(--cyan); font-size:10px; pointer-events:none; }
+    .form-grid { display:grid; grid-template-columns:repeat(2,minmax(260px,1fr)); gap:14px; }
+    .form-card { padding:20px; }
+    .form-card label { display:block; color:var(--accent); font-weight:700; margin-bottom:10px; }
+    .section-actions { display:flex; gap:12px; margin-top:18px; }
+    .logs { height:640px; overflow:auto; font:13px/1.7 Consolas,monospace; }
+    .toast { position:fixed; right:28px; bottom:26px; z-index:20; padding:12px 17px; border:1px solid var(--cyan); border-radius:7px; background:#07152aee; box-shadow:0 0 24px #10cce533; transform:translateY(100px); opacity:0; transition:.2s; }
+    .toast.show { transform:none; opacity:1; }
+    @media(max-width:1250px) { .cards{grid-template-columns:repeat(2,1fr)} .dashboard-grid{grid-template-columns:1fr 390px} .editor-grid{grid-template-columns:1fr} }
+    @media(max-width:980px) { .app{grid-template-columns:82px 1fr}.sidebar{width:82px;padding:20px 10px}.brand div,.nav span,.version div{display:none}.brand img{width:55px;height:55px}.nav i{margin:0;width:100%}.main{grid-column:2;padding:22px 18px}.dashboard-grid{grid-template-columns:1fr}.chat-panel{height:470px}.form-grid{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><img src="/assets/netrunner.png" alt="Netrunner"><div><strong>NETRUNNER</strong><span>OVERLAY ENGINE</span></div></div>
+    <nav>
+      <button class="nav active" data-page="dashboard"><i>▦</i><span>Dashboard</span></button>
+      <button class="nav" data-page="platforms"><i>◉</i><span>Plataformas</span></button>
+      <button class="nav" data-page="editor"><i>&lt;/&gt;</i><span>Overlay Editor</span></button>
+      <button class="nav" data-page="chat"><i>▣</i><span>Chat ao Vivo</span></button>
+      <button class="nav" data-page="logs"><i>▤</i><span>Logs</span></button>
+      <button class="nav" data-page="settings"><i>⚙</i><span>Configurações</span></button>
+    </nav>
+    <div class="version"><img src="/assets/netrunner.png" alt=""><div>Netrunner Engine<br>v1.2.0</div></div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="title"><h1 id="pageTitle">DASHBOARD</h1><p id="pageSubtitle">Visão geral do sistema</p></div>
+      <div class="engine"><span class="online">Engine Online</span><button id="engineBtn" class="btn btn-primary">INICIAR ENGINE</button><button class="btn btn-icon" id="closeBtn" title="Encerrar aplicação">⏻</button></div>
+    </header>
+
+    <section class="page active" id="page-dashboard">
+      <div class="dashboard-grid">
+        <div class="left-stack">
+          <div class="cards" id="platformCards"></div>
+          <div class="panel">
+            <div class="panel-title"><span class="glyph">♙</span> OVERLAY SERVER</div><p class="sub">Servidor de overlay rodando</p>
+            <div class="server-row"><span class="server-url">http://127.0.0.1:5000/overlay</span><button class="btn" id="copyLink">COPIAR LINK</button></div>
+          </div>
+          <div class="panel"><div class="panel-title"><span class="glyph">▤</span> ESTATÍSTICAS</div><div class="stats" id="stats"></div></div>
+          <div class="panel"><div class="panel-title"><span class="glyph">⌁</span> ATIVIDADE RECENTE</div><div class="activity" id="activity"></div></div>
+        </div>
+        <div class="panel chat-panel">
+          <div class="chat-head"><div class="panel-title"><span class="glyph">●</span> CHAT AO VIVO</div><p class="sub">Mensagens recebidas em tempo real</p></div>
+          <div class="chat-list" id="dashboardChat"></div>
+          <div class="filter"><input id="dashboardFilter" placeholder="Filtrar chat ao vivo..."><button class="btn btn-icon">➤</button></div>
+        </div>
+        <div class="panel editor-panel" id="dashboardEditor"></div>
+      </div>
+    </section>
+
+    <section class="page" id="page-platforms">
+      <div class="form-grid" id="platformFields"></div>
+      <div class="section-actions"><button class="btn btn-hot" id="startCapture">INICIAR / RECONECTAR CAPTURA</button><button class="btn" id="stopCapture">ENCERRAR CAPTURA</button></div>
+    </section>
+    <section class="page" id="page-editor"><div class="panel editor-panel" id="fullEditor"></div></section>
+    <section class="page" id="page-chat"><div class="panel chat-panel" style="height:720px"><div class="chat-head"><div class="panel-title"><span class="glyph">●</span> CHAT AO VIVO</div><p class="sub">Mensagens recebidas em tempo real</p></div><div class="chat-list" id="fullChat"></div><div class="filter"><input id="fullFilter" placeholder="Filtrar mensagens..."></div></div></section>
+    <section class="page" id="page-logs"><div class="panel logs" id="logs"></div></section>
+    <section class="page" id="page-settings"><div class="panel"><div class="panel-title">CONFIGURAÇÕES</div><p>Servidor local: <span class="server-url">127.0.0.1:5000</span></p><p style="color:var(--green)">Apenas conexões locais são aceitas.</p><p style="color:var(--muted)">Nenhuma credencial de plataforma é armazenada.</p></div></section>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+
+<template id="editorTemplate">
+  <div class="editor-head"><div><b>OVERLAY EDITOR</b><div style="color:var(--muted);font-size:12px">Edite seu overlay em tempo real</div></div><div class="editor-actions">AUTO PREVIEW <label class="switch"><input type="checkbox" checked data-auto><span></span></label><button class="btn" data-reset>RESET</button><button class="btn btn-hot" data-apply>APLICAR</button></div></div>
+  <div class="editor-grid"><div><div class="tabs"><button class="tab active" data-tab="html">HTML</button><button class="tab" data-tab="css">CSS</button><button class="tab" data-tab="js">JS</button></div><textarea class="active" data-code="html" spellcheck="false"></textarea><textarea data-code="css" spellcheck="false"></textarea><textarea data-code="js" spellcheck="false"></textarea></div><div><div class="preview-label">PREVIEW REAL DO OBS</div><div class="preview-shell"><iframe data-preview title="Prévia real do overlay"></iframe><span class="preview-badge">/overlay</span></div></div></div>
+</template>
+
+<script>
+const platforms={twitch:{name:'TWITCH',icon:'TW',color:'var(--twitch)'},youtube:{name:'YOUTUBE',icon:'YT',color:'var(--youtube)'},tiktok:{name:'TIKTOK',icon:'TT',color:'var(--tiktok)'},kick:{name:'KICK',icon:'K',color:'var(--kick)'}};
+const pageMeta={dashboard:['DASHBOARD','Visão geral do sistema'],platforms:['PLATAFORMAS','Configure os canais acompanhados'],editor:['OVERLAY EDITOR','Personalize o overlay do OBS'],chat:['CHAT AO VIVO','Mensagens recebidas'],logs:['LOGS','Eventos e diagnósticos'],settings:['CONFIGURAÇÕES','Preferências locais']};
+let latestState=null, overlaySource={html:'',css:'',js:''}, toastTimer;
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+function toast(message){const el=$('#toast');el.textContent=message;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2600)}
+async function api(url,options={}){const response=await fetch(url,{headers:{'Content-Type':'application/json'},...options});const data=await response.json();if(!response.ok)throw new Error(data.message||data.error||'Falha na operação');return data}
+function logo(platform){const p=platforms[platform];return `<span class="platform-logo" style="--accent:${p.color}">${p.icon}</span>`}
+function initStatic(){
+  $('#platformCards').innerHTML=Object.entries(platforms).map(([id,p])=>`<div class="platform-card" id="card-${id}" style="--accent:${p.color}"><div class="name">${logo(id)} ${p.name}</div><div class="status"><span class="dot"></span><span data-status>Desconectado</span></div><div class="count" data-count>0 mensagens</div></div>`).join('');
+  $('#platformFields').innerHTML=Object.entries(platforms).map(([id,p])=>`<div class="panel form-card" style="--accent:${p.color}"><label>${p.name}</label><input id="channel-${id}" placeholder="${id==='youtube'?'URL ou ID da live':id==='tiktok'?'@ do canal':'Nome ou URL do canal'}"></div>`).join('');
+  mountEditor($('#dashboardEditor')); mountEditor($('#fullEditor'));
+}
+function mountEditor(host){host.appendChild($('#editorTemplate').content.cloneNode(true));host.querySelectorAll('.tab').forEach(btn=>btn.onclick=()=>{host.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===btn));host.querySelectorAll('textarea').forEach(x=>x.classList.toggle('active',x.dataset.code===btn.dataset.tab))});host.querySelectorAll('textarea').forEach(el=>el.addEventListener('input',()=>{syncEditors(host);if(host.querySelector('[data-auto]').checked)debouncedPreview(host)}));host.querySelector('[data-apply]').onclick=()=>applyOverlay(host);host.querySelector('[data-reset]').onclick=loadOverlay;host.querySelector('[data-auto]').onchange=()=>renderPreview(host);}
+function syncEditors(sourceHost){const values=readEditor(sourceHost);$$('[data-code]').forEach(el=>{if(!sourceHost.contains(el))el.value=values[el.dataset.code]})}
+function readEditor(host){return Object.fromEntries(['html','css','js'].map(k=>[k,host.querySelector(`[data-code="${k}"]`).value]))}
+function compose(source){return `<!doctype html><html><head><meta charset="utf-8"><base href="http://127.0.0.1:5000/"><style>${source.css}\nhtml,body{background-color:#061126!important;background-image:linear-gradient(45deg,#08182f 25%,transparent 25%),linear-gradient(-45deg,#08182f 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#08182f 75%),linear-gradient(-45deg,transparent 75%,#08182f 75%)!important;background-size:20px 20px!important;background-position:0 0,0 10px,10px -10px,-10px 0!important}</style></head><body>${source.html}<script>${source.js}<\/script></body></html>`}
+function renderPreview(host,active=false){const frame=host.querySelector('[data-preview]');if(active){frame.removeAttribute('srcdoc');frame.src='/overlay?preview='+Date.now()}else{frame.srcdoc=compose(readEditor(host))}}
+let previewTimer;function debouncedPreview(host){clearTimeout(previewTimer);previewTimer=setTimeout(()=>{$$('.editor-panel').forEach(panel=>renderPreview(panel))},220)}
+async function loadOverlay(){try{overlaySource=await api('/api/overlay');$$('[data-code]').forEach(el=>el.value=overlaySource[el.dataset.code]);$$('.editor-panel').forEach(host=>renderPreview(host,true));toast('Versão ativa carregada')}catch(e){toast(e.message)}}
+async function applyOverlay(host){try{const source=readEditor(host);await api('/api/overlay',{method:'POST',body:JSON.stringify(source)});overlaySource=source;syncEditors(host);$$('.editor-panel').forEach(panel=>renderPreview(panel,true));toast('Overlay aplicado no OBS')}catch(e){toast(e.message)}}
+function renderMessages(target,messages,query=''){const filtered=messages.filter(m=>!query||`${m.user} ${m.message}`.toLowerCase().includes(query.toLowerCase()));target.innerHTML=filtered.length?filtered.slice(-30).reverse().map(m=>`<article class="message"><div class="message-head">${logo(m.platform)}<strong>${escapeHtml(m.user)}</strong><time>${m.timestamp}</time></div><p>${escapeHtml(m.message)}</p></article>`).join(''):'<div class="empty">Aguardando mensagens...</div>'}
+function escapeHtml(value){const el=document.createElement('span');el.textContent=value;return el.innerHTML}
+function renderState(state){latestState=state;Object.entries(state.platforms).forEach(([id,data])=>{const card=$(`#card-${id}`);card.classList.toggle('connected',data.connected);card.querySelector('[data-status]').textContent=data.status;card.querySelector('[data-count]').textContent=`${data.count} mensagens`;const field=$(`#channel-${id}`);if(field&&!field.matches(':focus')&&!field.value)field.value=data.channel||''});$('#engineBtn').textContent=state.capturing?'PARAR ENGINE':'INICIAR ENGINE';const s=state.stats;$('#stats').innerHTML=[[s.messages,'Total de mensagens'],[s.platforms,'Plataformas ativas'],[s.session,'Tempo de sessão'],[s.resources,'CPU / Memória']].map(x=>`<div class="stat"><b>${x[0]}</b><span>${x[1]}</span></div>`).join('');$('#activity').innerHTML=state.activity.map(x=>`<div class="activity-row"><time>${x.time}</time><i>•</i><span>${escapeHtml(x.text)}</span></div>`).join('');renderMessages($('#dashboardChat'),state.messages,$('#dashboardFilter').value);renderMessages($('#fullChat'),state.messages,$('#fullFilter').value);$('#logs').innerHTML=state.logs.map(x=>`<div><span style="color:var(--muted)">${x.time}</span> ${escapeHtml(x.text)}</div>`).join('')}
+async function refresh(){try{renderState(await api('/api/state'))}catch(e){console.error(e)}}
+async function capture(start){try{if(start){const channels=Object.fromEntries(Object.keys(platforms).map(id=>[id,$(`#channel-${id}`).value]));toast((await api('/api/capture',{method:'POST',body:JSON.stringify({channels})})).message)}else toast((await api('/api/capture/stop',{method:'POST',body:'{}'})).message);await refresh()}catch(e){toast(e.message)}}
+$$('.nav').forEach(btn=>btn.onclick=()=>{$$('.nav').forEach(x=>x.classList.toggle('active',x===btn));$$('.page').forEach(x=>x.classList.toggle('active',x.id===`page-${btn.dataset.page}`));$('#pageTitle').textContent=pageMeta[btn.dataset.page][0];$('#pageSubtitle').textContent=pageMeta[btn.dataset.page][1];if(btn.dataset.page==='editor')$$('#fullEditor [data-preview]').forEach(()=>renderPreview($('#fullEditor'),true))});
+$('#engineBtn').onclick=()=>capture(!(latestState&&latestState.capturing));$('#startCapture').onclick=()=>capture(true);$('#stopCapture').onclick=()=>capture(false);$('#dashboardFilter').oninput=()=>latestState&&renderState(latestState);$('#fullFilter').oninput=()=>latestState&&renderState(latestState);
+$('#copyLink').onclick=async()=>{const link='http://127.0.0.1:5000/overlay';try{await navigator.clipboard.writeText(link);toast('Link do OBS copiado')}catch{if(window.pywebview)await window.pywebview.api.copy_obs_link();toast('Link do OBS copiado')}};
+$('#closeBtn').onclick=async()=>{if(window.pywebview)await window.pywebview.api.close_app();else window.close()};
+initStatic();loadOverlay();refresh();setInterval(refresh,1000);
+</script>
+</body>
+</html>

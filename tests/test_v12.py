@@ -1,10 +1,8 @@
 import unittest
 
-import dearpygui.dearpygui as dpg
-
 import engine
 from core.base_bot import BaseBot
-from ui.dashboard import DashboardApp
+from ui.web_dashboard import WebDashboardController
 
 
 class FakeBot(BaseBot):
@@ -28,31 +26,35 @@ class ThreadBridgeTests(unittest.TestCase):
 
 class DashboardTests(unittest.TestCase):
     def setUp(self):
-        dpg.create_context()
         with engine.CHAT_LOCK:
             engine.CHAT_MESSAGES.clear()
-        self.app = DashboardApp()
-        self.app._start_server = lambda: None
-        self.app.build()
+        self.app = WebDashboardController()
+        engine.set_dashboard_controller(self.app)
 
     def tearDown(self):
         self.app.shutdown()
-        dpg.destroy_context()
+        engine.set_dashboard_controller(None)
 
     def test_message_updates_dashboard_and_overlay_queue(self):
-        self.app.events.put(("message", "Alice", "Oi", "twitch"))
-        self.app.tick()
-        self.assertEqual(dpg.get_value("count_twitch"), "1 mensagens")
-        self.assertEqual(len(self.app.messages), 1)
+        self.app._receive_message("Alice", "Oi", "twitch")
+        state = self.app.snapshot()
+        self.assertEqual(state["platforms"]["twitch"]["count"], 1)
+        self.assertEqual(state["messages"][-1]["message"], "Oi")
         with engine.CHAT_LOCK:
             self.assertEqual(engine.CHAT_MESSAGES[-1]["message"], "Oi")
 
-    def test_navigation_and_overlay_editor(self):
-        self.app._switch_page(user_data="platforms")
-        self.assertTrue(dpg.is_item_shown("page_platforms"))
-        dpg.set_value("editor_html", "<div>v1.2</div>")
-        self.app.apply_overlay()
-        self.assertEqual(engine.LIVE_HTML, "<div>v1.2</div>")
+    def test_overlay_editor_and_real_preview_routes(self):
+        result = self.app.apply_overlay({"html": "<div>v1.2</div>", "css": "body{}", "js": ""})
+        self.assertTrue(result["ok"])
+        client = engine.app.test_client()
+        dashboard_response = client.get("/dashboard")
+        self.assertEqual(dashboard_response.status_code, 200)
+        dashboard_response.close()
+        response = client.get("/overlay")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"<div>v1.2</div>", response.data)
+        response.close()
+        self.assertEqual(client.get("/api/state").status_code, 200)
 
 
 if __name__ == "__main__":

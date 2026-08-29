@@ -2,11 +2,17 @@
 
 O Netrunner Overlay Engine inclui componentes de terceiros. Esses componentes permanecem sob suas próprias licenças e não são abrangidos pelas restrições aplicadas ao código proprietário do Netrunner.
 
-## Dear PyGui 2.3.1
+## pywebview 6.2.1
 
-A interface da versão 1.2.0 utiliza Dear PyGui sob a licença MIT. A licença permite uso em aplicações proprietárias, modificação e distribuição, mantendo o respectivo aviso de copyright. O texto acompanha o pacote em `licenses/DearPyGui-LICENSE.txt`.
+A interface da versão 1.2.0 utiliza pywebview sob a licença BSD de 3 cláusulas. A biblioteca hospeda o dashboard HTML/CSS na janela nativa do Windows por meio do WebView2. O texto acompanha o pacote em `licenses/pywebview-LICENSE.txt`.
 
-Projeto: https://github.com/hoffstadt/DearPyGui
+Projeto: https://github.com/r0x0r/pywebview
+
+## Waitress 3.0.2
+
+O servidor HTTP local utiliza Waitress sob a Zope Public License 2.1. O texto acompanha o pacote em `licenses/Waitress-LICENSE.txt`.
+
+Projeto: https://github.com/Pylons/waitress
 
 ## psutil 7.2.2
 

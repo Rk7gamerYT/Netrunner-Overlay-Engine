@@ -20,4 +20,5 @@ release/
 .DS_Store
 Thumbs.db
 dashboard-preview.png
+.pip-cache/
 

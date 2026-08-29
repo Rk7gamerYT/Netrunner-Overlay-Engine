@@ -12,7 +12,7 @@ O Netrunner funciona como agregador de leitura: ele acompanha as mensagens públ
 
 - Captura simultânea de até quatro plataformas.
 - Overlay transparente para fonte de navegador do OBS.
-- Pré-visualização das mensagens dentro do aplicativo.
+- Pré-visualização real do mesmo HTML/CSS/JavaScript enviado ao OBS.
 - Identificação visual da plataforma em cada mensagem.
 - Botão para copiar o link do OBS.
 - Encerramento e reconexão da captura sem reiniciar o aplicativo.
@@ -26,7 +26,7 @@ O Netrunner funciona como agregador de leitura: ele acompanha as mensagens públ
 3. Extraia o arquivo ZIP.
 4. Execute `NetrunnerOverlay.exe`.
 
-Requisitos: Windows 10 ou 11 de 64 bits e conexão com a internet. O OBS Studio é necessário somente para utilizar o overlay em uma transmissão.
+Requisitos: Windows 10 ou 11 de 64 bits, Microsoft Edge WebView2 Runtime e conexão com a internet. O WebView2 já acompanha as instalações atuais do Windows e do Microsoft Edge. O OBS Studio é necessário somente para utilizar o overlay em uma transmissão.
 
 O Windows SmartScreen pode exibir um aviso porque o executável ainda não possui assinatura digital. Nesse caso, confira se o arquivo veio da página oficial de Releases antes de escolher **Mais informações > Executar assim mesmo**.
 
