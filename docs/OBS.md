@@ -6,7 +6,7 @@
 2. Clique em **COPIAR LINK DO OBS**.
 3. No OBS Studio, localize a cena desejada.
 4. Em **Fontes**, clique em **+** e selecione **Navegador**.
-5. Crie uma nova fonte e cole `http://127.0.0.1:5000` no campo URL.
+5. Crie uma nova fonte e cole `http://127.0.0.1:5000/overlay` no campo URL.
 6. Comece com 600 × 800 e redimensione conforme o seu layout.
 
 O fundo do overlay é transparente. Não é necessário aplicar chroma key.
@@ -27,7 +27,5 @@ Se o OBS mantiver uma versão antiga:
 4. Encerre e reconecte a captura no aplicativo.
 5. Confirme que não existem duas instâncias do Netrunner disputando a porta 5000.
 
-## Uso em outro computador
-
-Por padrão, o botão copia `http://127.0.0.1:5000`, que funciona quando OBS e Netrunner estão no mesmo computador. O servidor também informa o endereço da rede local, mas expor o overlay para outro dispositivo exige configuração de rede e firewall por conta do usuário.
+Por segurança, o overlay funciona somente no mesmo computador em que o Netrunner está aberto.
 

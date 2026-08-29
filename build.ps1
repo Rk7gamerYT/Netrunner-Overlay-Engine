@@ -9,8 +9,6 @@ $projectRoot = $PSScriptRoot
 $buildDir = Join-Path $projectRoot "build"
 $distDir = Join-Path $projectRoot "dist"
 $releaseDir = Join-Path $projectRoot "release"
-$packageDir = Join-Path $releaseDir "NetrunnerOverlay"
-$zipPath = Join-Path $releaseDir "NetrunnerOverlay-v$Version-windows-x64.zip"
 $originalPath = $env:Path
 
 if (Test-Path -LiteralPath $Python) {
@@ -65,20 +63,30 @@ try {
         throw "PyInstaller encerrou com código $LASTEXITCODE."
     }
 
-    New-Item -ItemType Directory -Path $packageDir -Force | Out-Null
-    Copy-Item -LiteralPath (Join-Path $distDir "NetrunnerOverlay.exe") -Destination $packageDir
-    Copy-Item -LiteralPath (Join-Path $projectRoot "README.md") -Destination $packageDir
-    Copy-Item -LiteralPath (Join-Path $projectRoot "LICENSE.md") -Destination $packageDir
-    Copy-Item -LiteralPath (Join-Path $projectRoot "THIRD_PARTY_NOTICES.md") -Destination $packageDir
-    Copy-Item -LiteralPath (Join-Path $projectRoot "licenses") -Destination $packageDir -Recurse
+    $isccCandidates = @(
+        (Join-Path $env:LOCALAPPDATA "Programs\Inno Setup 6\ISCC.exe"),
+        "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
+        "C:\Program Files\Inno Setup 6\ISCC.exe"
+    )
+    $iscc = $isccCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+    if (-not $iscc) {
+        throw "Inno Setup 6 não encontrado. Instale-o antes de gerar o instalador."
+    }
 
-    Compress-Archive -Path (Join-Path $packageDir "*") -DestinationPath $zipPath -CompressionLevel Optimal
+    & $iscc `
+        "/DAppVersion=$Version" `
+        "/DProjectRoot=$projectRoot" `
+        "/DOutputDir=$releaseDir" `
+        (Join-Path $projectRoot "installer\NetrunnerOverlay.iss")
 
-    $exeHash = Get-FileHash -LiteralPath (Join-Path $packageDir "NetrunnerOverlay.exe") -Algorithm SHA256
-    $zipHash = Get-FileHash -LiteralPath $zipPath -Algorithm SHA256
+    if ($LASTEXITCODE -ne 0) {
+        throw "Inno Setup encerrou com código $LASTEXITCODE."
+    }
+
+    $installerPath = Join-Path $releaseDir "NetrunnerOverlay-Setup-v$Version-windows-x64.exe"
+    $installerHash = Get-FileHash -LiteralPath $installerPath -Algorithm SHA256
     $checksumLines = @(
-        "$($exeHash.Hash)  NetrunnerOverlay.exe",
-        "$($zipHash.Hash)  $(Split-Path -Leaf $zipPath)"
+        "$($installerHash.Hash)  $(Split-Path -Leaf $installerPath)"
     )
     Set-Content -LiteralPath (Join-Path $releaseDir "SHA256SUMS.txt") -Value $checksumLines -Encoding ascii
 }
@@ -87,4 +95,4 @@ finally {
     Pop-Location
 }
 
-Write-Host "Pacote criado em: $zipPath"
+Write-Host "Instalador criado em: $installerPath"
