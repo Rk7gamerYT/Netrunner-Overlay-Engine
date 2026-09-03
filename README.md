@@ -18,6 +18,7 @@ O Netrunner reúne mensagens públicas de lives da Twitch, YouTube, TikTok e Kic
 Requisitos: Windows 10 ou 11 de 64 bits, conexão com a internet e Microsoft Edge WebView2 Runtime. O OBS Studio é necessário apenas para usar o overlay em uma transmissão.
 
 O Windows SmartScreen pode mostrar um aviso enquanto o instalador não possui assinatura digital. Confirme que o arquivo veio da Release oficial e compare seu SHA-256 com `SHA256SUMS.txt` antes de executá-lo.
+**Arquivo bloqueado pelo antivírus:** isto é um falso positivo causado pelo empacotamento PyInstaller e pela ausência de assinatura digital. Baixe novamente somente pela Release oficial, confira o SHA-256 em `SHA256SUMS.txt` e, se necessário, adicione uma exceção no seu antivírus. Consulte a [Política de Segurança](SECURITY.md) para mais detalhes.
 
 ## Como usar
 
