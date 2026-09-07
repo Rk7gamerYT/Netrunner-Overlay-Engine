@@ -11,14 +11,19 @@ O Netrunner reúne mensagens públicas de lives da Twitch, YouTube, TikTok e Kic
 ## Instalação
 
 1. Abra a página **Releases** deste repositório.
-2. Baixe `NetrunnerOverlay-Setup-v1.2.0-windows-x64.exe`.
-3. Execute o instalador e escolha o idioma.
-4. Ao concluir, abra **Netrunner Overlay Engine** pelo Menu Iniciar ou pelo atalho opcional da área de trabalho.
+2. Baixe `NetrunnerOverlay-Portable-v1.2.5-windows-x64.zip` (recomendado).
+3. Extraia o arquivo ZIP.
+4. Execute `NetrunnerOverlay.exe`.
 
-Requisitos: Windows 10 ou 11 de 64 bits, conexão com a internet e Microsoft Edge WebView2 Runtime. O OBS Studio é necessário apenas para usar o overlay em uma transmissão.
+O arquivo `NetrunnerOverlay-Setup-v1.2.5-windows-x64.exe` está disponível como alternativa para quem prefere instalação automática, atalhos e desinstalador integrado.
+
+A edição portátil é o download recomendado porque não usa um empacotador de instalação: basta extrair e abrir o aplicativo. O instalador pode receber alertas heurísticos isolados por causa do formato do pacote e da ausência de assinatura digital, mesmo quando o executável interno está limpo. Verifique sempre os hashes publicados na Release oficial.
+
+Requisitos: Windows 10 ou 11 de 64 bits, conexão com a internet e Microsoft Edge WebView2 Runtime. O OBS Studio é necessário somente para utilizar o overlay em uma transmissão.
 
 O Windows SmartScreen pode mostrar um aviso enquanto o instalador não possui assinatura digital. Confirme que o arquivo veio da Release oficial e compare seu SHA-256 com `SHA256SUMS.txt` antes de executá-lo.
-**Arquivo bloqueado pelo antivírus:** isto é um falso positivo causado pelo empacotamento PyInstaller e pela ausência de assinatura digital. Baixe novamente somente pela Release oficial, confira o SHA-256 em `SHA256SUMS.txt` e, se necessário, adicione uma exceção no seu antivírus. Consulte a [Política de Segurança](SECURITY.md) para mais detalhes.
+
+**Arquivo bloqueado pelo antivírus:** alguns mecanismos heurísticos podem sinalizar o instalador por causa do empacotador e da ausência de assinatura digital. Prefira a edição portátil, baixe somente pela Release oficial e confira o SHA-256 em `SHA256SUMS.txt`. Consulte a [Política de Segurança](SECURITY.md) para mais detalhes.
 
 ## Como usar
 
@@ -79,11 +84,21 @@ O desinstalador pergunta se você também deseja apagar as personalizações sal
 - **Porta 5000 ocupada:** feche outra instância do Netrunner ou o programa que estiver usando essa porta.
 - **Arquivo bloqueado pelo antivírus:** baixe novamente somente pela Release oficial e confira o SHA-256.
 
-## Privacidade
+## Verificação do download
 
-- As mensagens permanecem temporariamente na memória e não são gravadas em histórico pelo Netrunner.
+Depois de baixar o arquivo, abra o PowerShell na pasta do download e execute:
+
+```powershell
+Get-FileHash -Algorithm SHA256 .\NetrunnerOverlay-Portable-v1.2.5-windows-x64.zip
+```
+
+Compare o resultado com o hash registrado no arquivo `SHA256SUMS.txt` da mesma Release. Não execute o programa se os valores forem diferentes.
+
+## Privacidade e segurança
+
+- As mensagens ficam temporariamente na memória do aplicativo e não são gravadas em um histórico local pelo Netrunner.
 - O aplicativo não possui telemetria própria nem solicita credenciais das plataformas.
 - O servidor do overlay aceita somente conexões locais em `127.0.0.1`.
 - O projeto é independente e não possui vínculo oficial com Twitch, YouTube, TikTok, Kick ou OBS.
 
-O código-fonte proprietário permanece fechado. O download oficial é distribuído somente como instalador e segue a [licença de distribuição binária](LICENSE.md). Componentes de terceiros mantêm suas próprias licenças, descritas em [Avisos de terceiros](THIRD_PARTY_NOTICES.md).
+O código-fonte proprietário permanece fechado. O download oficial é distribuído como pacote portátil e instalador, ambos regidos pela [licença de distribuição binária](LICENSE.md). Componentes de terceiros mantêm suas próprias licenças, descritas em [Avisos de terceiros](THIRD_PARTY_NOTICES.md).

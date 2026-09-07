@@ -1,5 +1,13 @@
 # Histórico de versões
 
+## 1.2.5 — 2026-09-07
+
+- Aplicativo recompilado em modo standalone nativo com Nuitka.
+- Pacote portátil adicionado como download recomendado.
+- Instalador mantido como alternativa sem compressão sólida.
+- Artefatos de plataforma Android removidos do pacote Windows.
+- Metadados e verificações SHA-256 atualizados.
+
 ## 1.2.0 — 2026-08-29
 
 - Nova interface em formato de dashboard com prévia real do overlay.
