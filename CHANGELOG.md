@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 1.2.7 — 2026-09-08
+
+- Corrigido o empacotamento do endpoint de atualização no aplicativo Windows.
+- O mecanismo de atualização agora encontra o manifesto público da Release.
+
 ## 1.2.6 — 2026-09-08
 
 - Reconexão do TikTok corrigida para encerrar o cliente anterior antes de

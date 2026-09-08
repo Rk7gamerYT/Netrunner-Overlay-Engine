@@ -11,11 +11,11 @@ O Netrunner reúne mensagens públicas de lives da Twitch, YouTube, TikTok e Kic
 ## Instalação
 
 1. Abra a página **Releases** deste repositório.
-2. Baixe `NetrunnerOverlay-Portable-v1.2.6-windows-x64.zip` (recomendado).
+2. Baixe `NetrunnerOverlay-Portable-v1.2.7-windows-x64.zip` (recomendado).
 3. Extraia o arquivo ZIP.
 4. Execute `NetrunnerOverlay.exe`.
 
-O arquivo `NetrunnerOverlay-Setup-v1.2.6-windows-x64.exe` está disponível como alternativa para quem prefere instalação automática, atalhos e desinstalador integrado.
+O arquivo `NetrunnerOverlay-Setup-v1.2.7-windows-x64.exe` está disponível como alternativa para quem prefere instalação automática, atalhos e desinstalador integrado.
 
 A edição portátil é o download recomendado porque não usa um empacotador de instalação: basta extrair e abrir o aplicativo. O instalador pode receber alertas heurísticos isolados por causa do formato do pacote e da ausência de assinatura digital, mesmo quando o executável interno está limpo. Verifique sempre os hashes publicados na Release oficial.
 
@@ -94,7 +94,7 @@ O desinstalador pergunta se você também deseja apagar as personalizações sal
 Depois de baixar o arquivo, abra o PowerShell na pasta do download e execute:
 
 ```powershell
-Get-FileHash -Algorithm SHA256 .\NetrunnerOverlay-Portable-v1.2.6-windows-x64.zip
+Get-FileHash -Algorithm SHA256 .\NetrunnerOverlay-Portable-v1.2.7-windows-x64.zip
 ```
 
 Compare o resultado com o hash registrado no arquivo `SHA256SUMS.txt` da mesma Release. Não execute o programa se os valores forem diferentes.
