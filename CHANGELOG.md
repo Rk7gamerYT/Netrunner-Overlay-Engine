@@ -1,5 +1,14 @@
 # Histórico de versões
 
+## 1.2.6 — 2026-09-08
+
+- Reconexão do TikTok corrigida para encerrar o cliente anterior antes de
+  iniciar uma nova captura.
+- YouTube agora aceita `@` de canal e localiza a live ativa automaticamente.
+- Verificação de atualização adicionada ao aplicativo: manifesto HTTPS,
+  download do instalador e validação SHA-256 antes da execução.
+- Release passa a publicar `latest.json` para o mecanismo de atualização.
+
 ## 1.2.5 — 2026-09-07
 
 - Aplicativo recompilado em modo standalone nativo com Nuitka.

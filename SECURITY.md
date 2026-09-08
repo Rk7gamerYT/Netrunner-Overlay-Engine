@@ -10,10 +10,10 @@ Este documento descreve as práticas de segurança do Netrunner Overlay Engine, 
 
 ### Falsos Positivos em Antivírus
 
-O instalador `NetrunnerOverlay-Setup-*.exe` pode ser detectado por alguns antivírus como malicioso. **Isto é um falso positivo.**
+O instalador `NetrunnerOverlay-Setup-*.exe` pode ser detectado por alguns antivírus como suspeito. Uma detecção não deve ser ignorada automaticamente.
 
 **Por que isso acontece?**
-- O aplicativo é empacotado com **PyInstaller** (ferramenta para distribuir programas Python)
+- O aplicativo é empacotado como executável Windows standalone com **Nuitka**
 - O instalador ainda não possui assinatura digital
 - O programa cria um servidor web local (`127.0.0.1:5000`) para o overlay no OBS
 - Bibliotecas de terceiros podem acionar heurísticas de segurança
@@ -21,17 +21,17 @@ O instalador `NetrunnerOverlay-Setup-*.exe` pode ser detectado por alguns antiv�
 **Como verificar a segurança:**
 1. ✅ Baixe **SOMENTE** da [página oficial de Releases](https://github.com/Rk7gamerYT/Netrunner-Overlay-Engine/releases)
 2. ✅ Compare o hash SHA-256 com o arquivo `SHA256SUMS.txt`
-3. ✅ O código-fonte está disponível para auditoria
-4. ✅ Verifique em [VirusTotal](https://www.virustotal.com) - tipicamente 1/70 detecções
+3. ✅ Consulte o SHA-256 publicado na mesma Release
+4. ✅ Se houver dúvida, não execute o arquivo e reporte o caso ao projeto
 
 **O que estamos fazendo:**
 - 🔄 Reportamos o falso positivo para os fabricantes de antivírus
-- 🔄 Buscamos assinatura de código gratuita (projetos open source)
-- 🔄 Mantemos o código transparente e auditável
+- 🔄 Buscamos assinatura de código reconhecida para futuras versões
+- 🔄 Publicamos hashes e avisos de componentes de terceiros com cada pacote
 
-Se seu antivírus bloquear o instalador:
-- Adicione uma exceção temporária
-- Ou compile você mesmo a partir do código-fonte
+Se seu antivírus bloquear o instalador, não desative a proteção nem crie uma
+exceção às cegas. Verifique a origem e o SHA-256; se continuar bloqueado,
+reporte o produto de segurança e a versão do Netrunner ao projeto.
 
 ---
 
