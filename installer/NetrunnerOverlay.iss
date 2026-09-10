@@ -1,5 +1,5 @@
 #ifndef AppVersion
-  #define AppVersion "1.2.8"
+  #define AppVersion "1.2.9"
 #endif
 #ifndef ProjectRoot
   #define ProjectRoot ".."
@@ -81,3 +81,4 @@ begin
     if MsgBox(ExpandConstant('{cm:RemoveSettingsPrompt}'), mbConfirmation, MB_YESNO) = IDYES then
       DelTree(ExpandConstant('{localappdata}\NetrunnerOverlay'), True, True, True);
 end;
+

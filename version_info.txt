@@ -16,15 +16,16 @@ VSVersionInfo(
         [
           StringStruct(u'CompanyName', u'Netrunner'),
           StringStruct(u'FileDescription', u'Netrunner Overlay Engine'),
-          StringStruct(u'FileVersion', u'1.2.8'),
+          StringStruct(u'FileVersion', u'1.2.9'),
           StringStruct(u'InternalName', u'NetrunnerOverlay'),
           StringStruct(u'OriginalFilename', u'NetrunnerOverlay.exe'),
           StringStruct(u'ProductName', u'Netrunner Overlay Engine'),
-          StringStruct(u'ProductVersion', u'1.2.8')
+          StringStruct(u'ProductVersion', u'1.2.9')
         ]
       )
     ]),
     VarFileInfo([VarStruct(u'Translation', [1033, 1200])])
   ]
 )
+
 

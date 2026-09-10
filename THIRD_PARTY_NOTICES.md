@@ -4,7 +4,7 @@ O Netrunner Overlay Engine inclui componentes de terceiros. Esses componentes pe
 
 ## pywebview 6.2.1
 
-A interface da versão 1.2.8 utiliza pywebview sob a licença BSD de 3 cláusulas. A biblioteca hospeda o dashboard HTML/CSS na janela nativa do Windows por meio do WebView2. O texto acompanha o pacote em `licenses/pywebview-LICENSE.txt`.
+A interface da versão 1.2.9 utiliza pywebview sob a licença BSD de 3 cláusulas. A biblioteca hospeda o dashboard HTML/CSS na janela nativa do Windows por meio do WebView2. O texto acompanha o pacote em `licenses/pywebview-LICENSE.txt`.
 
 Projeto: https://github.com/r0x0r/pywebview
 
@@ -35,3 +35,4 @@ As marcas e nomes de projetos pertencem aos respectivos titulares. A inclusão d
 Os ícones de Twitch, YouTube, TikTok e Kick usados para identificar a origem das mensagens foram obtidos do projeto Simple Icons e convertidos para PNG sem alterar o desenho. O projeto é distribuído sob CC0 1.0; marcas e logotipos continuam pertencendo aos respectivos titulares e seu uso aqui não implica afiliação ou endosso.
 
 Projeto: https://github.com/simple-icons/simple-icons
+
