@@ -130,6 +130,11 @@ class YouTubeBot(core.base_bot.BaseBot):
             while self.running and chat.is_alive():
                 for c in chat.get().sync_items():
                     self.new_message.emit(c.author.name, c.message, "youtube")
+                    amount = getattr(c, "amountValue", None) or getattr(c, "amountString", None)
+                    if amount:
+                        self.new_event.emit({"type": "superchat", "data": {"title": "Super Chat", "message": f"{c.author.name}: {amount}", "user": c.author.name, "amount": amount}})
+                    if getattr(c, "isMembership", False) or getattr(c, "memberMonth", None):
+                        self.new_event.emit({"type": "member", "data": {"title": "Novo membro", "message": c.author.name, "user": c.author.name}})
                 
                 time.sleep(1)
 

@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-CURRENT_VERSION = "1.2.8"
+CURRENT_VERSION = "1.2.9"
 _ENDPOINT_CANDIDATES = [Path(__file__).with_name("update_endpoint.txt")]
 if getattr(sys, "frozen", False):
     _ENDPOINT_CANDIDATES.insert(0, Path(sys.executable).resolve().parent / "update_endpoint.txt")

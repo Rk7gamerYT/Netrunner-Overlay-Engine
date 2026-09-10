@@ -18,6 +18,10 @@ class BaseBot:
         self.channel_name = channel_name
         self.running = False
         self.new_message = Signal()
+        # Eventos de plataforma (doações, inscrições, follows, gifts etc.).
+        # Mantemos o sinal separado do chat para que cada tipo tenha seu próprio
+        # overlay e endpoint.
+        self.new_event = Signal()
         self.status_update = Signal()
         self.finished = Signal()
         self._thread = None

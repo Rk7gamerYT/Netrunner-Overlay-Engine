@@ -14,6 +14,10 @@ from bots.kick import KickBot
 from bots.tiktok import TikTokBot
 from bots.twitch import TwitchBot
 from bots.youtube import YouTubeBot
+from core.chat_schema import normalize_chat_message
+from core.event_schema import normalize_event
+from core.event_bus import EventBus
+from core.platforms import PLATFORM_REGISTRY
 
 
 PLATFORMS = {
@@ -57,6 +61,9 @@ class WebDashboardController:
         self.lock = threading.RLock()
         self.bots = []
         self.messages = deque(maxlen=50)
+        self.events_feed = deque(maxlen=80)
+        self.event_bus = EventBus(max_events=200)
+        self.ignored_users = set()
         self.activity = deque(maxlen=80)
         self.logs = deque(maxlen=200)
         self.counts = {platform: 0 for platform in PLATFORMS}
@@ -70,11 +77,17 @@ class WebDashboardController:
         self.process = psutil.Process(os.getpid())
         self.process.cpu_percent()
         self.overlay_config_path = overlay_config_path or default_overlay_config_path()
+        self.overlay_library_root = os.path.join(os.path.dirname(self.overlay_config_path), "overlays")
         self.channels_config_path = channels_config_path or default_channels_config_path()
         self.overlay_is_saved = False
+        self.event_overlay = {
+            "html": engine.DEFAULT_EVENT_HTML,
+            "css": engine.DEFAULT_EVENT_CSS,
+            "js": engine.DEFAULT_EVENT_JS,
+        }
         self._load_overlay_settings()
         self._load_channels()
-        self._add_activity("Aplicação v1.2.8 iniciada", "cyan")
+        self._add_activity("Aplicação v1.2.9 iniciada", "cyan")
         self._event_thread = threading.Thread(
             target=self._event_loop,
             name="DashboardEvents",
@@ -91,6 +104,8 @@ class WebDashboardController:
             kind = event[0]
             if kind == "message":
                 self._receive_message(*event[1:])
+            elif kind == "event":
+                self._receive_event(*event[1:])
             elif kind == "status":
                 self._receive_status(*event[1:])
             elif kind == "finished":
@@ -126,6 +141,11 @@ class WebDashboardController:
                     lambda user, message, source, q=self.events:
                     q.put(("message", user, message, source))
                 )
+                if hasattr(bot, "new_event"):
+                    bot.new_event.connect(
+                        lambda event, source=platform, q=self.events:
+                        q.put(("event", event, source))
+                    )
                 bot.status_update.connect(
                     lambda status, source=platform, q=self.events:
                     q.put(("status", source, status))
@@ -154,6 +174,74 @@ class WebDashboardController:
             self.channels.update(clean)
             self._persist_channels(clean)
         return {"ok": True, "message": "Canais salvos."}
+
+    def platform_registry(self):
+        return {key: dict(value) for key, value in PLATFORM_REGISTRY.items()}
+
+    def overlay_templates(self):
+        return {
+            "chat": {"name": "Chat compacto", "html": "<div id=\"log\"></div>", "css": engine.DEFAULT_LIVE_CSS, "js": engine.DEFAULT_LIVE_JS},
+            "events": {"name": "Alertas de eventos", "html": engine.DEFAULT_EVENT_HTML, "css": engine.DEFAULT_EVENT_CSS, "js": engine.DEFAULT_EVENT_JS},
+        }
+
+    def list_saved_overlays(self, target="chat"):
+        folder = os.path.join(self.overlay_library_root, "events" if target == "events" else "chat")
+        if not os.path.isdir(folder):
+            return []
+        return sorted(name[:-5] for name in os.listdir(folder) if name.endswith(".json"))
+
+    def save_overlay_named(self, target, name, source):
+        target = "events" if target == "events" else "chat"
+        safe = re.sub(r"[^a-zA-Z0-9_-]+", "-", str(name or "overlay")).strip("-") or "overlay"
+        folder = os.path.join(self.overlay_library_root, target)
+        os.makedirs(folder, exist_ok=True)
+        path = os.path.join(folder, safe + ".json")
+        self._save_json_file(path, {"version": 1, "target": target, **source})
+        return {"ok": True, "name": safe, "message": "Overlay salvo na biblioteca."}
+
+    def load_overlay_named(self, target, name):
+        target = "events" if target == "events" else "chat"
+        safe = re.sub(r"[^a-zA-Z0-9_-]+", "-", str(name or "")).strip("-")
+        path = os.path.join(self.overlay_library_root, target, safe + ".json")
+        try:
+            with open(path, "r", encoding="utf-8") as handle:
+                data = json.load(handle)
+            return {"ok": True, **{key: str(data.get(key) or "") for key in ("html", "css", "js")}, "target": target}
+        except (OSError, ValueError, json.JSONDecodeError):
+            return {"ok": False, "message": "Overlay salvo não encontrado."}
+
+    @staticmethod
+    def _save_json_file(path, data):
+        temporary = path + ".tmp"
+        with open(temporary, "w", encoding="utf-8") as handle:
+            json.dump(data, handle, ensure_ascii=False, indent=2)
+            handle.flush(); os.fsync(handle.fileno())
+        os.replace(temporary, path)
+
+    def moderate(self, payload):
+        payload = payload or {}
+        action = str(payload.get("action") or "").lower()
+        if action == "ignore_user":
+            user_id = str(payload.get("userId") or payload.get("user") or "").strip()
+            if user_id:
+                self.ignored_users.add(user_id)
+            return {"ok": True, "message": "Usuário ignorado."}
+        if action == "allow_user":
+            self.ignored_users.discard(str(payload.get("userId") or payload.get("user") or ""))
+            return {"ok": True, "message": "Usuário liberado."}
+        if action in {"message_delete", "delete_message"}:
+            message_id = str(payload.get("messageId") or "")
+            with self.lock:
+                self.messages = deque((m for m in self.messages if str(m.get("id")) != message_id), maxlen=50)
+            self._receive_event(normalize_event(type="message_delete", data={"messageId": message_id}), payload.get("platform", "twitch"))
+            return {"ok": True, "message": "Mensagem removida."}
+        if action in {"user_messages_delete", "delete_user"}:
+            user_id = str(payload.get("userId") or payload.get("user") or "")
+            with self.lock:
+                self.messages = deque((m for m in self.messages if str(m.get("userId") or m.get("user")) != user_id), maxlen=50)
+            self._receive_event(normalize_event(type="user_messages_delete", data={"userId": user_id}), payload.get("platform", "twitch"))
+            return {"ok": True, "message": "Mensagens do usuário removidas."}
+        return {"ok": False, "message": "Ação de moderação desconhecida."}
 
     def stop_capture(self):
         with self.lock:
@@ -186,6 +274,7 @@ class WebDashboardController:
             }
 
     def apply_overlay(self, payload):
+        target = str((payload or {}).get("target", "chat")).lower()
         source = {
             "html": str((payload or {}).get("html", engine.LIVE_HTML)),
             "css": str((payload or {}).get("css", engine.LIVE_CSS)),
@@ -199,13 +288,23 @@ class WebDashboardController:
             return {"ok": False, "message": "A personalização excede o limite de 1 MB por campo."}
         with self.lock:
             try:
-                self._save_overlay_settings(source)
+                if target == "events":
+                    chat_source = {"html": engine.LIVE_HTML, "css": engine.LIVE_CSS, "js": engine.LIVE_JS}
+                    self._save_overlay_settings({"chat": chat_source, "events": source})
+                    self.event_overlay = source
+                else:
+                    self._save_overlay_settings(source)
             except OSError as error:
                 self._log(f"[OVERLAY] Falha ao salvar personalização: {error}", "youtube", activity=False)
                 return {"ok": False, "message": "Não foi possível salvar a personalização localmente."}
-            engine.LIVE_HTML = source["html"]
-            engine.LIVE_CSS = source["css"]
-            engine.LIVE_JS = source["js"]
+            if target != "events":
+                engine.LIVE_HTML = source["html"]
+                engine.LIVE_CSS = source["css"]
+                engine.LIVE_JS = source["js"]
+            try:
+                self.save_overlay_named(target, "ativo", source)
+            except OSError:
+                pass
             self.overlay_is_saved = True
             self._add_activity("Overlay atualizado em tempo real", "green")
         return {"ok": True, "message": "Overlay salvo e aplicado no OBS."}
@@ -217,6 +316,7 @@ class WebDashboardController:
                 "css": engine.LIVE_CSS,
                 "js": engine.LIVE_JS,
                 "saved": self.overlay_is_saved,
+                "events": dict(self.event_overlay),
             }
 
     def _load_overlay_settings(self):
@@ -227,6 +327,9 @@ class WebDashboardController:
                 source = json.load(settings_file)
             if not isinstance(source, dict):
                 raise ValueError("formato inválido")
+            if isinstance(source.get("chat"), dict):
+                self.event_overlay = source.get("events") or self.event_overlay
+                source = source["chat"]
             values = {}
             for name in ("html", "css", "js"):
                 value = source.get(name)
@@ -292,6 +395,9 @@ class WebDashboardController:
                 cpu, memory = 0, 0
             return {
                 "capturing": self.is_capturing,
+                "platformRegistry": self.platform_registry(),
+                "eventUrl": "http://127.0.0.1:5000/events",
+                "chatUrl": "http://127.0.0.1:5000/overlay",
                 "platforms": {
                     platform: {
                         "connected": self.connected[platform],
@@ -302,6 +408,7 @@ class WebDashboardController:
                     for platform in PLATFORMS
                 },
                 "messages": list(self.messages),
+                "events": list(self.events_feed),
                 "activity": list(self.activity)[:8],
                 "logs": list(self.logs)[-100:],
                 "stats": {
@@ -316,22 +423,20 @@ class WebDashboardController:
         if platform not in PLATFORMS:
             return
         with self.lock:
-            record = {
-                "user": str(user),
-                "message": str(message),
-                "platform": platform,
-                "timestamp": datetime.now().strftime("%H:%M:%S"),
-            }
+            record = normalize_chat_message({
+                "user": user, "displayName": user, "message": message,
+                "platform": platform, "timestamp": int(time.time() * 1000),
+            })
+            if record.get("userId") in self.ignored_users or record.get("user") in self.ignored_users:
+                return
+            record["time"] = datetime.now().strftime("%H:%M:%S")
             self.messages.append(record)
             self.counts[platform] += 1
             with engine.CHAT_LOCK:
                 engine.MESSAGE_SEQUENCE += 1
-                engine.CHAT_MESSAGES.append({
-                    "id": engine.MESSAGE_SEQUENCE,
-                    "user": record["user"],
-                    "message": record["message"],
-                    "platform": platform,
-                })
+                enriched = dict(record)
+                enriched["id"] = engine.MESSAGE_SEQUENCE
+                engine.CHAT_MESSAGES.append(enriched)
                 del engine.CHAT_MESSAGES[:-engine.MAX_MESSAGES]
             self._log(f"[{platform.upper()}] {user}: {message}", platform, activity=False)
 
@@ -347,6 +452,32 @@ class WebDashboardController:
             else:
                 self.status_labels[platform] = str(status)
             self._log(f"[{platform.upper()}] {status}", platform)
+
+    def _receive_event(self, event, platform):
+        """Store a normalized platform event without mixing it into chat."""
+        if platform not in PLATFORMS:
+            return
+        if isinstance(event, str):
+            record = {"type": "event", "title": event, "message": event}
+        else:
+            record = dict(event or {})
+        record = normalize_event(record, platform=platform)
+        record["timestamp"] = int(time.time() * 1000)
+        event_type = record["type"]
+        record["title"] = record["data"].get("title") or event_type.replace("_", " ").title()
+        record["message"] = record["data"].get("message") or record["data"].get("text") or record["title"]
+        record["time"] = datetime.now().strftime("%H:%M:%S")
+        with self.lock:
+            published = self.event_bus.publish(record)
+            record["id"] = published["id"]
+            self.events_feed.append(record)
+            with engine.CHAT_LOCK:
+                engine.EVENT_SEQUENCE += 1
+                payload = dict(record)
+                payload["id"] = engine.EVENT_SEQUENCE
+                engine.EVENT_MESSAGES.append(payload)
+                del engine.EVENT_MESSAGES[:-engine.MAX_MESSAGES]
+            self._log(f"[{platform.upper()}] {record['title']}", platform, activity=False)
 
     def _bot_finished(self, platform, bot):
         with self.lock:

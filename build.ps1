@@ -1,6 +1,6 @@
 param(
     [string]$Python = "$PSScriptRoot\venv\Scripts\python.exe",
-    [string]$Version = "1.2.8",
+    [string]$Version = "1.2.9",
     [string]$Repository = $env:GITHUB_REPOSITORY
 )
 

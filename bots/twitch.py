@@ -231,6 +231,16 @@ class TwitchBot(BaseBot):
 
                     self._handle_privmsg(line)
 
+                # IRC USERNOTICE transporta inscrições, resubs e raids.
+                if " USERNOTICE " in line:
+                    tags = self._parse_tags(line)
+                    notice = tags.get("msg-id") or "subscription"
+                    user = tags.get("display-name") or tags.get("login") or "Usuário"
+                    count = tags.get("msg-param-viewerCount") or tags.get("msg-param-cumulative-months") or ""
+                    label = {"sub": "Nova inscrição", "resub": "Renovação de inscrição", "raid": "Raid recebida"}.get(notice, "Evento Twitch")
+                    detail = f"{user}" + (f" ({count})" if count else "")
+                    self.new_event.emit({"type": notice, "data": {"title": label, "message": detail, "user": user, "tags": tags}})
+
 
     def run(self):
 

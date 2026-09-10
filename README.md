@@ -11,7 +11,7 @@ O Netrunner reúne mensagens públicas de lives da Twitch, YouTube, TikTok e Kic
 ## Instalação
 
 1. Abra a página **Releases** deste repositório.
-2. Baixe `NetrunnerOverlay-Setup-v1.2.8-windows-x64.exe`.
+2. Baixe `NetrunnerOverlay-Setup-v1.2.9-windows-x64.exe`.
 3. Execute o instalador e escolha o idioma.
 4. Ao concluir, abra **Netrunner Overlay Engine** pelo Menu Iniciar ou pelo atalho opcional da área de trabalho.
 
@@ -39,9 +39,9 @@ Clique em **Iniciar / Reconectar captura**. Para trocar algum canal, encerre a c
 
 ## Usar no OBS
 
-1. No Dashboard, clique em **Copiar link**.
-2. No OBS, adicione uma fonte **Navegador**.
-3. Cole `http://127.0.0.1:5000/overlay` no campo URL.
+1. No Dashboard, escolha **Copiar** no cartão **Overlay de chat** ou **Overlay de eventos**.
+2. No OBS, adicione uma fonte **Navegador** para cada overlay que deseja exibir.
+3. Use `http://127.0.0.1:5000/overlay` para chat e `http://127.0.0.1:5000/events` para eventos.
 4. Comece com 600 × 800 e ajuste ao layout da sua transmissão.
 5. Mantenha o Netrunner aberto enquanto o overlay estiver em uso.
 
@@ -53,13 +53,16 @@ O **Overlay Editor** permite ajustar a aparência e acompanhar a mesma prévia q
 
 ![Editor e prévia real do overlay](docs/images/overlay-editor.png)
 
-As personalizações ficam salvas em:
+O editor é dividido em **Overlay de chat** e **Overlay de eventos**. Cada um tem HTML, CSS e JavaScript próprios, modelo base, lista de overlays salvos, importação, exportação, prévia e botão **Salvar e aplicar**. Os arquivos ficam separados em:
 
 ```text
-%LOCALAPPDATA%\NetrunnerOverlay\overlay.json
+%LOCALAPPDATA%\NetrunnerOverlay\overlays\chat
+%LOCALAPPDATA%\NetrunnerOverlay\overlays\events
 ```
 
-Esse arquivo contém somente o HTML, CSS e JavaScript personalizados do overlay. Ele pode ser copiado como backup e restaurado no mesmo local.
+Os dois modelos usam fundo transparente. Consulte o [guia completo de overlays](docs/OVERLAYS.md) para conhecer os formatos JSON, endpoints de polling e exemplos de templates.
+
+![Chat e eventos ao vivo](docs/images/chat-eventos.png)
 
 ## Idiomas e configurações
 
@@ -94,3 +97,6 @@ O desinstalador pergunta se você também deseja apagar as personalizações sal
 - O projeto é independente e não possui vínculo oficial com Twitch, YouTube, TikTok, Kick ou OBS.
 
 O código-fonte proprietário permanece fechado. O download oficial é distribuído somente como instalador e segue a [licença de distribuição binária](LICENSE.md). Componentes de terceiros mantêm suas próprias licenças, descritas em [Avisos de terceiros](THIRD_PARTY_NOTICES.md).
+
+
+

@@ -1,5 +1,6 @@
 import socket
 import multiprocessing
+import os
 import time
 import urllib.request
 
@@ -43,7 +44,7 @@ class DesktopAPI:
             return {"ok": False, "message": f"Não foi possível verificar atualizações: {error}"}
         if update is None:
             self._pending_update = None
-            return {"ok": True, "available": False, "current_version": "1.2.8"}
+            return {"ok": True, "available": False, "current_version": "1.2.9"}
         self._pending_update = update
         return {
             "ok": True,
@@ -71,6 +72,49 @@ class DesktopAPI:
         if self._window is not None:
             self._window.destroy()
         return True
+
+    def choose_overlay_file(self, mode="open", default_name="netrunner-overlay.json"):
+        """Use the native picker so export/import never depends on a browser download folder."""
+        if self._window is None:
+            return {"ok": False, "message": "Janela ainda não está disponível."}
+        try:
+            dialog = webview.SAVE_DIALOG if mode == "save" else webview.OPEN_DIALOG
+            kwargs = {"file_types": ("Overlay JSON (*.json)",)}
+            if mode == "save":
+                kwargs["save_filename"] = default_name
+            result = self._window.create_file_dialog(dialog, **kwargs)
+            path = result[0] if isinstance(result, (list, tuple)) and result else result
+            return {"ok": bool(path), "path": path or "", "cancelled": not bool(path)}
+        except Exception as error:
+            return {"ok": False, "message": f"Não foi possível abrir o seletor de arquivos: {error}"}
+
+    def read_overlay_file(self, path):
+        try:
+            with open(os.path.abspath(path), "r", encoding="utf-8") as handle:
+                return {"ok": True, "content": handle.read()}
+        except (OSError, UnicodeError) as error:
+            return {"ok": False, "message": f"Não foi possível ler o overlay: {error}"}
+
+    def write_overlay_file(self, path, content):
+        try:
+            destination = os.path.abspath(path)
+            with open(destination, "w", encoding="utf-8") as handle:
+                handle.write(str(content))
+            return {"ok": True, "path": destination, "message": "Overlay exportado."}
+        except OSError as error:
+            return {"ok": False, "message": f"Não foi possível exportar o overlay: {error}"}
+
+    def import_overlay_file(self):
+        pick = self.choose_overlay_file("open")
+        if not pick.get("ok"):
+            return pick
+        return self.read_overlay_file(pick["path"])
+
+    def export_overlay_file(self, content, default_name="netrunner-overlay.json"):
+        pick = self.choose_overlay_file("save", default_name)
+        if not pick.get("ok"):
+            return pick
+        return self.write_overlay_file(pick["path"], content)
 
     def shutdown(self, *_):
         if self._closed:
@@ -120,7 +164,7 @@ def main():
 
     api = DesktopAPI(server_process)
     window = webview.create_window(
-        "Netrunner Overlay Engine v1.2.8",
+        "Netrunner Overlay Engine v1.2.9",
         "http://127.0.0.1:5000/dashboard",
         width=1540,
         height=960,
@@ -129,7 +173,13 @@ def main():
         text_select=True,
     )
     api._window = window
-    window.expose(api.close_app)
+    window.expose(
+        api.close_app,
+        api.check_for_update,
+        api.install_update,
+        api.import_overlay_file,
+        api.export_overlay_file,
+    )
     window.events.closed += api.shutdown
 
     try:

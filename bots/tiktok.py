@@ -18,6 +18,10 @@ from TikTokLive.events import (
     ConnectEvent,
     DisconnectEvent
 )
+try:
+    from TikTokLive.events import GiftEvent, FollowEvent, LikeEvent, ShareEvent
+except ImportError:  # versões antigas do TikTokLive
+    GiftEvent = FollowEvent = LikeEvent = ShareEvent = None
 from TikTokLive.client.errors import UserOfflineError
 from websockets.exceptions import InvalidHandshake
 
@@ -129,6 +133,32 @@ class TikTokBot(BaseBot):
                         event.comment,
                         "tiktok"
                     )
+
+                def emit_live_event(event_type, event, title, message):
+                    if not self.running:
+                        return
+                    user = getattr(getattr(event, "user", None), "nickname", None) or "Usuário"
+                    self.new_event.emit({"type": event_type, "data": {"title": title, "message": f"{user}: {message}", "user": user}})
+
+                if GiftEvent:
+                    @client.on(GiftEvent)
+                    async def on_gift(event):
+                        gift = getattr(getattr(event, "gift", None), "name", None) or "Presente"
+                        count = getattr(event, "repeat_count", 1) or 1
+                        emit_live_event("gift", event, "Presente recebido", f"{gift} × {count}")
+                if FollowEvent:
+                    @client.on(FollowEvent)
+                    async def on_follow(event):
+                        emit_live_event("follow", event, "Novo seguidor", "começou a seguir")
+                if LikeEvent:
+                    @client.on(LikeEvent)
+                    async def on_like(event):
+                        count = getattr(event, "count", 1) or 1
+                        emit_live_event("like", event, "Curtidas", f"+{count}")
+                if ShareEvent:
+                    @client.on(ShareEvent)
+                    async def on_share(event):
+                        emit_live_event("share", event, "Live compartilhada", "compartilhou a live")
 
                 @client.on(DisconnectEvent)
                 async def on_disconnect(event):

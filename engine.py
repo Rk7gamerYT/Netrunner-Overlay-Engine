@@ -26,12 +26,14 @@ app = Flask(__name__)
 
 
 CHAT_MESSAGES = []
+EVENT_MESSAGES = []
 
 MAX_MESSAGES = 50
 
 CHAT_LOCK = threading.Lock()
 
 MESSAGE_SEQUENCE = int(time.time() * 1000) * 1000
+EVENT_SEQUENCE = int(time.time() * 1000) * 1000
 
 DASHBOARD_CONTROLLER = None
 
@@ -391,6 +393,25 @@ setInterval(updateChat, 1000);
 
 LIVE_JS = DEFAULT_LIVE_JS
 
+DEFAULT_EVENT_HTML = """
+<div id="events"></div>
+"""
+
+DEFAULT_EVENT_CSS = """
+body { margin:0; padding:20px; background:transparent; font-family:'Segoe UI',Arial,sans-serif; }
+#events { display:flex; flex-direction:column; gap:12px; }
+.netrunner-event { color:#fff; background:rgba(3,12,28,.82); border:1px solid #10d9f4; border-radius:8px; padding:12px 16px; animation:fadeIn .3s ease; }
+.netrunner-event strong { color:#10d9f4; margin-right:8px; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+"""
+
+DEFAULT_EVENT_JS = """
+let lastEventId=0;
+function safe(v){const e=document.createElement('span');e.textContent=v??'';return e.innerHTML}
+async function updateEvents(){try{const r=await fetch('/api/v1/events?after='+lastEventId,{cache:'no-store'});if(!r.ok)return;for(const event of await r.json()){lastEventId=Math.max(lastEventId,Number(event.id)||0);const data=event.data||{}, node=document.createElement('div');node.className='netrunner-event';node.innerHTML='<strong>'+safe(data.title||event.type||'Evento')+'</strong><span>'+safe(data.message||data.text||'')+'</span>';document.querySelector('#events').prepend(node)}while(document.querySelector('#events').children.length>30)document.querySelector('#events').lastElementChild.remove()}catch(_){}}
+updateEvents();setInterval(updateEvents,1000);
+"""
+
 
 # ==========================================
 # TEMPLATE
@@ -500,6 +521,43 @@ def chat():
     return response
 
 
+@app.route("/events")
+def events_overlay():
+    # O mesmo caminho serve como fonte de navegador e como API de polling:
+    # quando `after` é informado, devolvemos somente eventos novos.
+    if "after" in request.args:
+        after = request.args.get("after", default=0, type=int)
+        with CHAT_LOCK:
+            items = [item.copy() for item in EVENT_MESSAGES if item.get("id", 0) > after]
+        response = jsonify(items)
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        return response
+    controller = DASHBOARD_CONTROLLER
+    source = getattr(controller, "event_overlay", None) if controller else None
+    source = source or {"html": "<div id=\"events\"></div>", "css": LIVE_CSS, "js": LIVE_JS}
+    return render_template_string(OVERLAY_TEMPLATE, html=source["html"], css=source["css"], js=source["js"], preview_css="" if not request.args.get("preview") else "")
+
+
+@app.route("/api/v1")
+def api_info():
+    return jsonify({"name": "Netrunner Pulse API", "version": "1", "endpoints": {"chat": "/api/v1/chat", "events": "/api/v1/events"}})
+
+
+@app.route("/api/v1/chat")
+def api_chat_v1():
+    return chat()
+
+
+@app.route("/api/v1/events")
+def api_events_v1():
+    after = request.args.get("after", default=0, type=int)
+    with CHAT_LOCK:
+        items = [item.copy() for item in EVENT_MESSAGES if item.get("id", 0) > after]
+    response = jsonify(items)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    return response
+
+
 @app.route("/dashboard")
 def dashboard():
     return send_file(resource_path("ui/dashboard.html"))
@@ -515,6 +573,49 @@ def dashboard_state():
     if DASHBOARD_CONTROLLER is None:
         return jsonify({"error": "Dashboard indisponível."}), 503
     return jsonify(DASHBOARD_CONTROLLER.snapshot())
+
+
+@app.route("/api/platforms")
+def dashboard_platforms():
+    if DASHBOARD_CONTROLLER is None:
+        return jsonify({"error": "Dashboard indisponível."}), 503
+    return jsonify(DASHBOARD_CONTROLLER.platform_registry())
+
+
+@app.route("/api/v1/templates")
+def dashboard_templates():
+    if DASHBOARD_CONTROLLER is None:
+        return jsonify({"error": "Dashboard indisponível."}), 503
+    return jsonify(DASHBOARD_CONTROLLER.overlay_templates())
+
+
+@app.route("/api/overlays", methods=["GET", "POST"])
+def dashboard_overlay_library():
+    if DASHBOARD_CONTROLLER is None:
+        return jsonify({"ok": False, "message": "Dashboard indisponível."}), 503
+    payload = request.get_json(silent=True) or {}
+    target = request.args.get("target") or payload.get("target", "chat")
+    if request.method == "GET":
+        return jsonify({"target": target, "items": DASHBOARD_CONTROLLER.list_saved_overlays(target)})
+    result = DASHBOARD_CONTROLLER.save_overlay_named(target, payload.get("name"), {key: str(payload.get(key) or "") for key in ("html", "css", "js")})
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@app.route("/api/overlays/load", methods=["POST"])
+def dashboard_overlay_library_load():
+    if DASHBOARD_CONTROLLER is None:
+        return jsonify({"ok": False, "message": "Dashboard indisponível."}), 503
+    payload = request.get_json(silent=True) or {}
+    result = DASHBOARD_CONTROLLER.load_overlay_named(payload.get("target", "chat"), payload.get("name", ""))
+    return jsonify(result), 200 if result.get("ok") else 404
+
+
+@app.route("/api/v1/moderation", methods=["POST"])
+def dashboard_moderation():
+    if DASHBOARD_CONTROLLER is None:
+        return jsonify({"ok": False, "message": "Dashboard indisponível."}), 503
+    result = DASHBOARD_CONTROLLER.moderate(request.get_json(silent=True) or {})
+    return jsonify(result), 200 if result.get("ok") else 400
 
 
 @app.route("/api/capture", methods=["POST"])
