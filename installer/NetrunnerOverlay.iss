@@ -1,5 +1,5 @@
 #ifndef AppVersion
-  #define AppVersion "1.2.0"
+  #define AppVersion "1.2.8"
 #endif
 #ifndef ProjectRoot
   #define ProjectRoot ".."
@@ -24,8 +24,11 @@ OutputBaseFilename=NetrunnerOverlay-Setup-v{#AppVersion}-windows-x64
 SetupIconFile={#ProjectRoot}\assets\netrunner.ico
 UninstallDisplayIcon={app}\NetrunnerOverlay.exe
 LicenseFile={#ProjectRoot}\LICENSE.md
-Compression=lzma2/ultra64
-SolidCompression=yes
+; O executavel Nuitka isolado passa limpo no VirusTotal (0/70), enquanto o
+; instalador LZMA2/solid recebe uma deteccao heuristica da Microsoft. Manter o
+; payload sem compressao deixa os PE/DLLs diretamente inspecionaveis pelo AV.
+Compression=none
+SolidCompression=no
 WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
@@ -48,7 +51,9 @@ Name: "french"; MessagesFile: "compiler:Languages\French.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "{#ProjectRoot}\dist\NetrunnerOverlay.exe"; DestDir: "{app}"; Flags: ignoreversion
+; O build standalone do Nuitka gera NetrunnerOverlay.dist sem stub
+; autoextraivel. O executavel continua sendo instalado como NetrunnerOverlay.exe.
+Source: "{#ProjectRoot}\dist\main.dist\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#ProjectRoot}\README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#ProjectRoot}\LICENSE.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#ProjectRoot}\THIRD_PARTY_NOTICES.md"; DestDir: "{app}"; Flags: ignoreversion

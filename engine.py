@@ -526,6 +526,15 @@ def dashboard_start_capture():
     return jsonify(result), 200 if result.get("ok") else 400
 
 
+@app.route("/api/channels", methods=["POST"])
+def dashboard_save_channels():
+    if DASHBOARD_CONTROLLER is None:
+        return jsonify({"ok": False, "message": "Dashboard indisponível."}), 503
+    payload = request.get_json(silent=True) or {}
+    result = DASHBOARD_CONTROLLER.save_channels(payload.get("channels", {}))
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
 @app.route("/api/capture/stop", methods=["POST"])
 def dashboard_stop_capture():
     if DASHBOARD_CONTROLLER is None:

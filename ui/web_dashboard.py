@@ -1,6 +1,7 @@
 import json
 import os
 import queue
+import re
 import threading
 import time
 from collections import deque
@@ -23,6 +24,7 @@ PLATFORMS = {
 }
 
 OVERLAY_CONFIG_ENV = "NETRUNNER_OVERLAY_CONFIG"
+CHANNELS_CONFIG_ENV = "NETRUNNER_CHANNELS_CONFIG"
 MAX_OVERLAY_SECTION_BYTES = 1024 * 1024
 
 
@@ -34,10 +36,23 @@ def default_overlay_config_path():
     return os.path.join(base_dir, "NetrunnerOverlay", "overlay.json")
 
 
+def default_channels_config_path():
+    override = os.environ.get(CHANNELS_CONFIG_ENV)
+    if override:
+        return os.path.abspath(override)
+    base_dir = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
+    return os.path.join(base_dir, "NetrunnerOverlay", "channels.json")
+
+
+def normalize_channel_input(value):
+    """Normalize identifiers without changing URL punctuation or @ handles."""
+    return re.sub(r"\s+", "", str(value or "").strip())
+
+
 class WebDashboardController:
     """Thread-safe bridge between the web dashboard and the capture workers."""
 
-    def __init__(self, overlay_config_path=None):
+    def __init__(self, overlay_config_path=None, channels_config_path=None):
         self.events = queue.Queue()
         self.lock = threading.RLock()
         self.bots = []
@@ -55,9 +70,11 @@ class WebDashboardController:
         self.process = psutil.Process(os.getpid())
         self.process.cpu_percent()
         self.overlay_config_path = overlay_config_path or default_overlay_config_path()
+        self.channels_config_path = channels_config_path or default_channels_config_path()
         self.overlay_is_saved = False
         self._load_overlay_settings()
-        self._add_activity("Aplicação v1.2.0 iniciada", "cyan")
+        self._load_channels()
+        self._add_activity("Aplicação v1.2.8 iniciada", "cyan")
         self._event_thread = threading.Thread(
             target=self._event_loop,
             name="DashboardEvents",
@@ -85,7 +102,7 @@ class WebDashboardController:
                 return {"ok": False, "message": "A captura já está ativa."}
 
             clean = {
-                platform: str((channels or {}).get(platform, "")).strip()
+                platform: normalize_channel_input((channels or {}).get(platform, ""))
                 for platform in PLATFORMS
             }
             configs = [
@@ -97,6 +114,7 @@ class WebDashboardController:
                 return {"ok": False, "message": "Informe ao menos um canal."}
 
             self.channels.update(clean)
+            self._persist_channels(clean)
             self.bots = [bot for bot in self.bots if bot.isRunning()]
             running_types = {type(bot) for bot in self.bots}
             started = 0
@@ -127,6 +145,16 @@ class WebDashboardController:
                 self._add_activity("Captura iniciada", "green")
             return {"ok": bool(started), "message": "Captura iniciada." if started else "Nenhuma nova captura iniciada."}
 
+    def save_channels(self, channels):
+        with self.lock:
+            clean = {
+                platform: normalize_channel_input((channels or {}).get(platform, ""))
+                for platform in PLATFORMS
+            }
+            self.channels.update(clean)
+            self._persist_channels(clean)
+        return {"ok": True, "message": "Canais salvos."}
+
     def stop_capture(self):
         with self.lock:
             if self.is_stopping:
@@ -134,14 +162,28 @@ class WebDashboardController:
             self.is_stopping = True
             self.is_capturing = False
             bots = list(self.bots)
-            for bot in bots:
-                bot.running = False
-                bot.requestInterruption()
+        for bot in bots:
+            bot.requestInterruption()
+
+        # Do not allow a new capture to start while a platform client is still
+        # unwinding its network loop.  This is especially important for
+        # TikTokLive, whose async client can otherwise overlap with the next
+        # connection after a stop/reconnect click.
+        wait_results = [bot.wait(5000) for bot in bots]
+        stopped = all(wait_results)
+        with self.lock:
+            self.bots = [bot for bot in self.bots if bot.isRunning()]
             for platform in PLATFORMS:
                 self._set_platform(platform, False, "Desconectado")
-            self._add_activity("Captura encerrada", "youtube")
-            self.is_stopping = False
-            return {"ok": True, "message": "Captura encerrada."}
+            if stopped:
+                self._add_activity("Captura encerrada", "youtube")
+                self.is_stopping = False
+                return {"ok": True, "message": "Captura encerrada."}
+            self._add_activity("A captura ainda está encerrando", "orange")
+            return {
+                "ok": False,
+                "message": "A captura ainda está encerrando. Aguarde e tente novamente.",
+            }
 
     def apply_overlay(self, payload):
         source = {
@@ -210,6 +252,34 @@ class WebDashboardController:
             os.fsync(settings_file.fileno())
         os.replace(temporary_path, self.overlay_config_path)
 
+    def _load_channels(self):
+        if not os.path.isfile(self.channels_config_path):
+            return
+        try:
+            with open(self.channels_config_path, "r", encoding="utf-8") as settings_file:
+                saved = json.load(settings_file)
+            if not isinstance(saved, dict):
+                raise ValueError("formato inválido")
+            for platform in PLATFORMS:
+                value = saved.get(platform, "")
+                if isinstance(value, str):
+                    self.channels[platform] = normalize_channel_input(value)
+        except (OSError, ValueError, json.JSONDecodeError) as error:
+            self._log(f"[PLATAFORMAS] Canais salvos ignorados: {error}", "youtube", activity=False)
+
+    def _persist_channels(self, channels):
+        try:
+            directory = os.path.dirname(self.channels_config_path)
+            os.makedirs(directory, exist_ok=True)
+            temporary_path = f"{self.channels_config_path}.tmp"
+            with open(temporary_path, "w", encoding="utf-8") as settings_file:
+                json.dump(channels, settings_file, ensure_ascii=False, indent=2)
+                settings_file.flush()
+                os.fsync(settings_file.fileno())
+            os.replace(temporary_path, self.channels_config_path)
+        except OSError as error:
+            self._log(f"[PLATAFORMAS] Falha ao salvar canais: {error}", "youtube", activity=False)
+
     def snapshot(self):
         with self.lock:
             elapsed = 0 if self.session_started is None else int(time.monotonic() - self.session_started)
@@ -270,10 +340,10 @@ class WebDashboardController:
             return
         lower = str(status).lower()
         with self.lock:
-            if "conectado" in lower or "sintonizada" in lower:
+            if "desconectado" in lower or "erro" in lower or "recusou" in lower or "offline" in lower:
+                self._set_platform(platform, False, str(status))
+            elif "conectado" in lower or "sintonizada" in lower:
                 self._set_platform(platform, True, "Conectado")
-            elif "desconectado" in lower or "erro" in lower:
-                self._set_platform(platform, False, "Desconectado")
             else:
                 self.status_labels[platform] = str(status)
             self._log(f"[{platform.upper()}] {status}", platform)
@@ -285,6 +355,8 @@ class WebDashboardController:
             self._set_platform(platform, False, "Desconectado")
             if self.is_capturing and not any(current.isRunning() for current in self.bots):
                 self.is_capturing = False
+            if self.is_stopping and not any(current.isRunning() for current in self.bots):
+                self.is_stopping = False
 
     def _set_platform(self, platform, connected, label):
         self.connected[platform] = connected

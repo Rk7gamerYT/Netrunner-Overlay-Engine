@@ -6,6 +6,12 @@ import urllib.request
 import webview
 
 import engine
+from core.updater import (
+    UPDATE_MANIFEST_URL,
+    check_for_update as fetch_update,
+    download_and_verify,
+    launch_installer,
+)
 from ui.web_dashboard import WebDashboardController
 
 
@@ -23,6 +29,42 @@ class DesktopAPI:
         self._server_process = server_process
         self._window = None
         self._closed = False
+        self._pending_update = None
+
+    def check_for_update(self):
+        if not UPDATE_MANIFEST_URL:
+            return {
+                "ok": False,
+                "message": "Esta build ainda não possui o endereço do manifesto de atualizações.",
+            }
+        try:
+            update = fetch_update()
+        except Exception as error:
+            return {"ok": False, "message": f"Não foi possível verificar atualizações: {error}"}
+        if update is None:
+            self._pending_update = None
+            return {"ok": True, "available": False, "current_version": "1.2.8"}
+        self._pending_update = update
+        return {
+            "ok": True,
+            "available": True,
+            "version": update.version,
+            "notes_url": update.notes_url,
+        }
+
+    def install_update(self):
+        update = self._pending_update
+        if update is None:
+            return {"ok": False, "message": "Nenhuma atualização pendente."}
+        try:
+            installer = download_and_verify(update)
+            launch_installer(installer)
+        except Exception as error:
+            return {"ok": False, "message": f"Não foi possível preparar a atualização: {error}"}
+        self.shutdown()
+        if self._window is not None:
+            self._window.destroy()
+        return {"ok": True, "message": "Atualização iniciada."}
 
     def close_app(self):
         self.shutdown()
@@ -78,7 +120,7 @@ def main():
 
     api = DesktopAPI(server_process)
     window = webview.create_window(
-        "Netrunner Overlay Engine v1.2.0",
+        "Netrunner Overlay Engine v1.2.8",
         "http://127.0.0.1:5000/dashboard",
         width=1540,
         height=960,

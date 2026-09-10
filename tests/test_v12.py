@@ -4,6 +4,7 @@ import unittest
 
 import engine
 from core.base_bot import BaseBot
+from bots.youtube import YouTubeBot
 from main import DesktopAPI
 from ui.web_dashboard import WebDashboardController
 
@@ -45,7 +46,8 @@ class DashboardTests(unittest.TestCase):
             engine.CHAT_MESSAGES.clear()
         self.temp_dir = tempfile.TemporaryDirectory()
         self.overlay_config_path = os.path.join(self.temp_dir.name, "overlay.json")
-        self.app = WebDashboardController(self.overlay_config_path)
+        self.channels_config_path = os.path.join(self.temp_dir.name, "channels.json")
+        self.app = WebDashboardController(self.overlay_config_path, self.channels_config_path)
         engine.set_dashboard_controller(self.app)
 
     def tearDown(self):
@@ -69,7 +71,7 @@ class DashboardTests(unittest.TestCase):
         self.assertTrue(os.path.isfile(self.overlay_config_path))
         self.assertTrue(self.app.overlay_source()["saved"])
         self.app.shutdown()
-        self.app = WebDashboardController(self.overlay_config_path)
+        self.app = WebDashboardController(self.overlay_config_path, self.channels_config_path)
         engine.set_dashboard_controller(self.app)
         self.assertEqual(self.app.overlay_source()["html"], "<div>v1.2</div>")
         client = engine.app.test_client()
@@ -91,6 +93,42 @@ class DashboardTests(unittest.TestCase):
             self.assertEqual(icon_response.status_code, 200)
             self.assertEqual(icon_response.mimetype, "image/png")
             icon_response.close()
+
+    def test_platform_channels_are_saved_and_loaded(self):
+        result = self.app.save_channels({
+            "youtube": " @ rk7 gamer yt ",
+            "tiktok": " @ zykagames ",
+        })
+        self.assertTrue(result["ok"])
+        self.app.shutdown()
+        self.app = WebDashboardController(self.overlay_config_path, self.channels_config_path)
+        state = self.app.snapshot()
+        self.assertEqual(state["platforms"]["youtube"]["channel"], "@rk7gameryt")
+        self.assertEqual(state["platforms"]["tiktok"]["channel"], "@zykagames")
+
+    def test_disconnect_status_does_not_match_connected_substring(self):
+        self.app._receive_status("tiktok", "TikTok conectado: @tester")
+        self.assertTrue(self.app.snapshot()["platforms"]["tiktok"]["connected"])
+        self.app._receive_status("tiktok", "TikTok desconectado.")
+        self.assertFalse(self.app.snapshot()["platforms"]["tiktok"]["connected"])
+
+    def test_youtube_accepts_handle_without_spaces(self):
+        calls = []
+
+        class FakeResponse:
+            text = '<link rel="canonical" href="https://www.youtube.com/watch?v=abc12345678">'
+
+            def raise_for_status(self):
+                return None
+
+        import bots.youtube as youtube_module
+        saved_get = youtube_module.requests.get
+        youtube_module.requests.get = lambda url, **kwargs: (calls.append(url) or FakeResponse())
+        try:
+            self.assertEqual(YouTubeBot.resolve_video_id(" @ rk7 gamer yt "), "abc12345678")
+        finally:
+            youtube_module.requests.get = saved_get
+        self.assertEqual(calls, ["https://www.youtube.com/@rk7gameryt/live"])
 
 
 if __name__ == "__main__":

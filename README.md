@@ -11,7 +11,7 @@ O Netrunner reúne mensagens públicas de lives da Twitch, YouTube, TikTok e Kic
 ## Instalação
 
 1. Abra a página **Releases** deste repositório.
-2. Baixe `NetrunnerOverlay-Setup-v1.2.0-windows-x64.exe`.
+2. Baixe `NetrunnerOverlay-Setup-v1.2.8-windows-x64.exe`.
 3. Execute o instalador e escolha o idioma.
 4. Ao concluir, abra **Netrunner Overlay Engine** pelo Menu Iniciar ou pelo atalho opcional da área de trabalho.
 
@@ -19,12 +19,17 @@ Requisitos: Windows 10 ou 11 de 64 bits, conexão com a internet e Microsoft Edg
 
 O Windows SmartScreen pode mostrar um aviso enquanto o instalador não possui assinatura digital. Confirme que o arquivo veio da Release oficial e compare seu SHA-256 com `SHA256SUMS.txt` antes de executá-lo.
 
+Depois de instalado, use **Configurações → Atualizações → Verificar
+atualizações**. O aplicativo consulta um manifesto HTTPS publicado junto da
+Release, baixa o instalador, confere o SHA-256 e só então inicia a atualização.
+
 ## Como usar
 
 Abra **Plataformas** e preencha somente os canais que deseja acompanhar:
 
 - **Twitch:** nome ou URL do canal.
-- **YouTube:** URL da live ou ID do vídeo.
+- **YouTube:** URL da live, ID do vídeo ou `@` do canal. Ao usar `@`, o
+  Netrunner procura a transmissão ativa do canal automaticamente.
 - **TikTok:** nome ou `@` do canal.
 - **Kick:** nome ou URL do canal.
 
@@ -74,6 +79,9 @@ O desinstalador pergunta se você também deseja apagar as personalizações sal
 
 - **Overlay vazio:** confirme que o Netrunner está aberto e atualize o cache da fonte Navegador no OBS.
 - **Uma plataforma não conecta:** confira o canal informado e se a live está ativa.
+- **TikTok mostra HTTP 400:** use a build atual, que corrige a codificação da
+  URL do WebSocket e a entrada na sala do chat. Esse código de erro, sozinho,
+  não indica que uma chave de API é necessária.
 - **Mensagens pararam:** encerre e reconecte a captura; depois atualize a fonte no OBS.
 - **Porta 5000 ocupada:** feche outra instância do Netrunner ou o programa que estiver usando essa porta.
 - **Arquivo bloqueado pelo antivírus:** baixe novamente somente pela Release oficial e confira o SHA-256.
