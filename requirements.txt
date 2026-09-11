@@ -7,3 +7,4 @@ pysher==1.0.8
 pytchat==0.5.5
 requests==2.34.2
 TikTokLive==7.0.0
+websockets>=15,<18

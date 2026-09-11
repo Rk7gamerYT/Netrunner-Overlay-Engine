@@ -1,6 +1,6 @@
 param(
     [string]$Python = "$PSScriptRoot\venv\Scripts\python.exe",
-    [string]$Version = "1.2.9",
+    [string]$Version = "1.3.0",
     [string]$Repository = $env:GITHUB_REPOSITORY
 )
 
@@ -72,6 +72,7 @@ try {
         --include-package=TikTokLive `
         --include-package=pytchat `
         --include-package=pysher `
+        --include-package=websockets `
         --nofollow-import-to=PyQt6 `
         --nofollow-import-to=PySide6 `
         --nofollow-import-to=webview.platforms.android `

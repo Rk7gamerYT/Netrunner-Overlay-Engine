@@ -156,6 +156,25 @@ class TwitchBot(BaseBot):
                 "twitch"
             )
 
+    def _handle_bits(self, line):
+        tags = self._parse_tags(line)
+        bits = tags.get("bits")
+        if not bits:
+            return
+        user = tags.get("display-name") or tags.get("login") or "Usuário"
+        self.new_event.emit({
+            "type": "bits",
+            "data": {
+                "eventId": tags.get("id"),
+                "title": "Bits recebidos",
+                "message": f"{user}: {bits} Bits",
+                "user": user,
+                "displayName": user,
+                "amount": bits,
+                "count": bits,
+            },
+        })
+
 
     def _listen(self, channel):
 
@@ -230,6 +249,7 @@ class TwitchBot(BaseBot):
                 if " PRIVMSG " in line:
 
                     self._handle_privmsg(line)
+                    self._handle_bits(line)
 
                 # IRC USERNOTICE transporta inscrições, resubs e raids.
                 if " USERNOTICE " in line:
@@ -237,9 +257,9 @@ class TwitchBot(BaseBot):
                     notice = tags.get("msg-id") or "subscription"
                     user = tags.get("display-name") or tags.get("login") or "Usuário"
                     count = tags.get("msg-param-viewerCount") or tags.get("msg-param-cumulative-months") or ""
-                    label = {"sub": "Nova inscrição", "resub": "Renovação de inscrição", "raid": "Raid recebida"}.get(notice, "Evento Twitch")
+                    label = {"sub": "Nova inscrição", "resub": "Renovação de inscrição", "subgift": "Inscrição presenteada", "raid": "Raid recebida"}.get(notice, "Evento Twitch")
                     detail = f"{user}" + (f" ({count})" if count else "")
-                    self.new_event.emit({"type": notice, "data": {"title": label, "message": detail, "user": user, "tags": tags}})
+                    self.new_event.emit({"type": notice, "data": {"eventId": tags.get("id"), "title": label, "message": detail, "user": user, "displayName": user, "count": count, "tags": tags}})
 
 
     def run(self):

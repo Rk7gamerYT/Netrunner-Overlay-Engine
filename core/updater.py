@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-CURRENT_VERSION = "1.2.9"
+CURRENT_VERSION = "1.3.0"
 _ENDPOINT_CANDIDATES = [Path(__file__).with_name("update_endpoint.txt")]
 if getattr(sys, "frozen", False):
     _ENDPOINT_CANDIDATES.insert(0, Path(sys.executable).resolve().parent / "update_endpoint.txt")
@@ -71,7 +71,7 @@ def check_for_update(manifest_url=None, current_version=CURRENT_VERSION, timeout
         raise ValueError("A URL do manifesto precisa usar HTTPS.")
     request = urllib.request.Request(
         url,
-        headers={"Accept": "application/json", "User-Agent": "NetrunnerOverlay/1.2"},
+        headers={"Accept": "application/json", "User-Agent": "NetrunnerOverlay/1.3"},
     )
     with urllib.request.urlopen(request, timeout=timeout) as response:
         payload = json.loads(response.read().decode("utf-8"))
@@ -89,7 +89,7 @@ def download_and_verify(update, destination_dir=None, timeout=60):
     temporary_path = target_path.with_suffix(".download")
     request = urllib.request.Request(
         update.download_url,
-        headers={"User-Agent": "NetrunnerOverlay/1.2"},
+        headers={"User-Agent": "NetrunnerOverlay/1.3"},
     )
     digest = hashlib.sha256()
     try:

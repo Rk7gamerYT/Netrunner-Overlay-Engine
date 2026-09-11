@@ -11,7 +11,7 @@ O Netrunner reúne mensagens públicas de lives da Twitch, YouTube, TikTok e Kic
 ## Instalação
 
 1. Abra a página **Releases** deste repositório.
-2. Baixe `NetrunnerOverlay-Setup-v1.2.9-windows-x64.exe`.
+2. Baixe `NetrunnerOverlay-Setup-v1.3.0-windows-x64.exe`.
 3. Execute o instalador e escolha o idioma.
 4. Ao concluir, abra **Netrunner Overlay Engine** pelo Menu Iniciar ou pelo atalho opcional da área de trabalho.
 
@@ -39,11 +39,10 @@ Clique em **Iniciar / Reconectar captura**. Para trocar algum canal, encerre a c
 
 ## Usar no OBS
 
-1. No Dashboard, escolha **Copiar** no cartão **Overlay de chat** ou **Overlay de eventos**.
+1. Abra o Dashboard pelo aplicativo e copie os links seguros de chat e eventos, que já incluem os tokens necessários para o OBS.
 2. No OBS, adicione uma fonte **Navegador** para cada overlay que deseja exibir.
-3. Use `http://127.0.0.1:5000/overlay` para chat e `http://127.0.0.1:5000/events` para eventos.
-4. Comece com 600 × 800 e ajuste ao layout da sua transmissão.
-5. Mantenha o Netrunner aberto enquanto o overlay estiver em uso.
+3. Comece com 600 × 800 e ajuste ao layout da sua transmissão.
+4. Mantenha o Netrunner aberto enquanto o overlay estiver em uso.
 
 Consulte o [guia do OBS](docs/OBS.md) se precisar atualizar a fonte ou resolver um overlay vazio.
 
@@ -60,7 +59,7 @@ O editor é dividido em **Overlay de chat** e **Overlay de eventos**. Cada um te
 %LOCALAPPDATA%\NetrunnerOverlay\overlays\events
 ```
 
-Os dois modelos usam fundo transparente. Consulte o [guia completo de overlays](docs/OVERLAYS.md) para conhecer os formatos JSON, endpoints de polling e exemplos de templates.
+Os dois modelos usam fundo transparente. Consulte o [guia completo de overlays](docs/OVERLAYS.md) para conhecer os formatos JSON, endpoints de polling e exemplos de templates. Para doações externas, veja o [guia de pagamentos](docs/PAYMENTS.md).
 
 ![Chat e eventos ao vivo](docs/images/chat-eventos.png)
 
@@ -69,6 +68,13 @@ Os dois modelos usam fundo transparente. Consulte o [guia completo de overlays](
 A interface está disponível em Português, Inglês, Espanhol e Francês. O idioma pode ser alterado em **Configurações**.
 
 ![Configurações do Netrunner](docs/images/configuracoes.png)
+
+Em **Configurações → Saúde do sistema**, use **Validar Browser Sources** antes
+da live para conferir os links de chat/eventos, transparência, runtime e assets.
+O **Teste de resiliência** observa a fila e o transporte realtime pelo tempo
+escolhido sem injetar mensagens ou alertas falsos na transmissão. Para validar
+o comportamento real do OBS, deixe a fonte aberta durante um teste longo e
+confira o resultado no dashboard.
 
 ## Desinstalação
 
@@ -86,6 +92,9 @@ O desinstalador pergunta se você também deseja apagar as personalizações sal
   URL do WebSocket e a entrada na sala do chat. Esse código de erro, sozinho,
   não indica que uma chave de API é necessária.
 - **Mensagens pararam:** encerre e reconecte a captura; depois atualize a fonte no OBS.
+- **Diagnóstico do dashboard:** abra **Configurações → Saúde do sistema**. Se o
+  Browser Source falhar, copie novamente o link seguro; se o WebSocket estiver
+  opcional/offline, o polling HTTP continua sendo usado como fallback.
 - **Porta 5000 ocupada:** feche outra instância do Netrunner ou o programa que estiver usando essa porta.
 - **Arquivo bloqueado pelo antivírus:** baixe novamente somente pela Release oficial e confira o SHA-256.
 

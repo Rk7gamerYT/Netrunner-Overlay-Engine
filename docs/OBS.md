@@ -6,10 +6,24 @@
 2. Clique em **COPIAR LINK DO OBS**.
 3. No OBS Studio, localize a cena desejada.
 4. Em **Fontes**, clique em **+** e selecione **Navegador**.
-5. Crie uma nova fonte e cole `http://127.0.0.1:5000/overlay` no campo URL.
+5. Crie uma nova fonte e cole no campo URL o link seguro de chat copiado no Dashboard (ele contém `?token=...`).
 6. Comece com 600 × 800 e redimensione conforme o seu layout.
 
 O fundo do overlay é transparente. Não é necessário aplicar chroma key.
+
+## Diagnóstico antes da live
+
+Em **Configurações → Saúde do sistema**, clique em **Validar Browser Sources**.
+O teste confere os dois links seguros, o HTML entregue pelo servidor, a
+transparência declarada pelo tema, o runtime do overlay e a biblioteca de
+assets local. O WebSocket é um transporte opcional; se estiver indisponível,
+o template padrão continua no polling HTTP.
+
+Use **Teste de resiliência** para observar a fila de captura e as amostras do
+transporte realtime durante alguns minutos. Esse teste não cria mensagens,
+eventos, sons ou doações artificiais. Para uma verificação completa, deixe a
+fonte Navegador aberta no OBS pelo período escolhido e confirme que o resultado
+fica como **concluído**.
 
 ## Atualizar a fonte
 

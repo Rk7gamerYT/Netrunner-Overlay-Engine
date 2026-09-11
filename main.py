@@ -7,6 +7,7 @@ import urllib.request
 import webview
 
 import engine
+from core.realtime_gateway import LocalRealtimeGateway
 from core.updater import (
     UPDATE_MANIFEST_URL,
     check_for_update as fetch_update,
@@ -18,11 +19,20 @@ from ui.web_dashboard import WebDashboardController
 
 def run_server_process():
     controller = WebDashboardController()
+    gateway = LocalRealtimeGateway(
+        history_provider=engine.realtime_history,
+        authenticator=engine.authorize_overlay_path,
+        logger=lambda message: controller.record_operational_log(message, "cyan"),
+    )
     engine.set_dashboard_controller(controller)
+    engine.set_realtime_gateway(gateway)
+    gateway.start()
     try:
         engine.run_flask()
     finally:
         controller.shutdown()
+        gateway.stop()
+        engine.set_realtime_gateway(None)
 
 
 class DesktopAPI:
@@ -44,7 +54,7 @@ class DesktopAPI:
             return {"ok": False, "message": f"Não foi possível verificar atualizações: {error}"}
         if update is None:
             self._pending_update = None
-            return {"ok": True, "available": False, "current_version": "1.2.9"}
+            return {"ok": True, "available": False, "current_version": "1.3.0"}
         self._pending_update = update
         return {
             "ok": True,
@@ -124,7 +134,10 @@ class DesktopAPI:
             request = urllib.request.Request(
                 "http://127.0.0.1:5000/api/shutdown",
                 data=b"{}",
-                headers={"Content-Type": "application/json"},
+                headers={
+                    "Content-Type": "application/json",
+                    "X-Netrunner-Admin-Token": engine.admin_token(),
+                },
                 method="POST",
             )
             urllib.request.urlopen(request, timeout=1).close()
@@ -150,6 +163,7 @@ def wait_for_server(host="127.0.0.1", port=5000, timeout=10):
 
 def main():
     multiprocessing.freeze_support()
+    engine.ensure_security_manager()
     server_process = multiprocessing.Process(
         target=run_server_process,
         name="NetrunnerOverlayServer",
@@ -164,8 +178,8 @@ def main():
 
     api = DesktopAPI(server_process)
     window = webview.create_window(
-        "Netrunner Overlay Engine v1.2.9",
-        "http://127.0.0.1:5000/dashboard",
+        "Netrunner Overlay Engine v1.3.0",
+        engine.dashboard_url(),
         width=1540,
         height=960,
         min_size=(1180, 720),

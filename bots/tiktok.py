@@ -134,18 +134,21 @@ class TikTokBot(BaseBot):
                         "tiktok"
                     )
 
-                def emit_live_event(event_type, event, title, message):
+                def emit_live_event(event_type, event, title, message, extra=None):
                     if not self.running:
                         return
                     user = getattr(getattr(event, "user", None), "nickname", None) or "Usuário"
-                    self.new_event.emit({"type": event_type, "data": {"title": title, "message": f"{user}: {message}", "user": user}})
+                    event_id = getattr(event, "msg_id", None) or getattr(event, "message_id", None)
+                    data = {"eventId": event_id, "title": title, "message": f"{user}: {message}", "user": user, "displayName": user}
+                    data.update(extra or {})
+                    self.new_event.emit({"type": event_type, "data": data})
 
                 if GiftEvent:
                     @client.on(GiftEvent)
                     async def on_gift(event):
                         gift = getattr(getattr(event, "gift", None), "name", None) or "Presente"
                         count = getattr(event, "repeat_count", 1) or 1
-                        emit_live_event("gift", event, "Presente recebido", f"{gift} × {count}")
+                        emit_live_event("gift", event, "Presente recebido", f"{gift} × {count}", {"giftName": gift, "count": count})
                 if FollowEvent:
                     @client.on(FollowEvent)
                     async def on_follow(event):
@@ -154,7 +157,7 @@ class TikTokBot(BaseBot):
                     @client.on(LikeEvent)
                     async def on_like(event):
                         count = getattr(event, "count", 1) or 1
-                        emit_live_event("like", event, "Curtidas", f"+{count}")
+                        emit_live_event("like", event, "Curtidas", f"+{count}", {"count": count})
                 if ShareEvent:
                     @client.on(ShareEvent)
                     async def on_share(event):

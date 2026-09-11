@@ -87,8 +87,29 @@ class KickBot(BaseBot):
 
 
     def run(self):
-
         self.running = True
+        reconnect_delay = 2
+        while self.running:
+            try:
+                self._run_connection()
+                reconnect_delay = 2
+            except ValueError as error:
+                self.status_update.emit(f"Erro Kick: {error}")
+                break
+            except Exception as error:
+                if not self.running:
+                    break
+                self.status_update.emit(f"Erro Kick: {error}")
+            if not self.running:
+                break
+            self.status_update.emit(f"Reconectando Kick em {reconnect_delay}s...")
+            deadline = time.monotonic() + reconnect_delay
+            while self.running and time.monotonic() < deadline:
+                time.sleep(0.25)
+            reconnect_delay = min(reconnect_delay * 2, 30)
+        self.running = False
+
+    def _run_connection(self):
 
         try:
 
@@ -119,6 +140,23 @@ class KickBot(BaseBot):
                     self.handle_message
                 )
 
+                for event_name in (
+                    "App\\Events\\SubscriptionEvent",
+                    "App\\Events\\ChannelSubscriptionEvent",
+                    "App\\Events\\GiftedSubscriptions",
+                    "App\\Events\\FollowersUpdated",
+                    "App\\Events\\FollowerEvent",
+                    "App\\Events\\ChannelFollowEvent",
+                    "App\\Events\\HostEvent",
+                    "App\\Events\\RaidEvent",
+                    "App\\Events\\HostRaidEvent",
+                    "App\\Events\\TipEvent",
+                    "App\\Events\\DonationEvent",
+                    "App\\Events\\KicksGiftedEvent",
+                    "App\\Events\\ChannelRewardRedeemedEvent",
+                ):
+                    channel.bind(event_name, lambda data, name=event_name: self.handle_event(data, name))
+
                 self.status_update.emit(
                     "Kick conectado: "
                     f"{channel_label} (sala {self.chatroom_id})"
@@ -135,16 +173,10 @@ class KickBot(BaseBot):
 
                 time.sleep(0.25)
 
-        except Exception as error:
-
-            self.status_update.emit(
-                f"Erro Kick: {error}"
-            )
+        except Exception:
+            raise
 
         finally:
-
-            self.running = False
-
             if self.pusher:
 
                 try:
@@ -193,3 +225,42 @@ class KickBot(BaseBot):
             self.status_update.emit(
                 f"Erro lendo mensagem Kick: {error}"
             )
+
+    def handle_event(self, data, event_name=None):
+        """Convert Kick activity payloads into the common event signal."""
+        if not self.running:
+            return
+        try:
+            payload = json.loads(data) if isinstance(data, str) else dict(data or {})
+            event_name = str(event_name or payload.get("event") or payload.get("type") or payload.get("name") or "event")
+            lowered = event_name.lower()
+            sender = payload.get("sender") or payload.get("user") or payload.get("follower") or {}
+            user = sender if isinstance(sender, str) else (sender.get("username") or sender.get("name") or "Usuário")
+            user_id = None if isinstance(sender, str) else (sender.get("id") or sender.get("user_id"))
+            if "follow" in lowered:
+                event_type, title = "follow", "Novo seguidor"
+            elif "subscription" in lowered or "subscriber" in lowered:
+                event_type, title = "subscription", "Nova inscrição"
+            elif "gift" in lowered:
+                event_type, title = "gift", "Inscrições presenteadas"
+            elif "raid" in lowered or "host" in lowered:
+                event_type, title = "raid", "Raid recebida"
+            elif "tip" in lowered or "donat" in lowered:
+                event_type, title = "donation", "Doação recebida"
+            elif "reward" in lowered:
+                event_type, title = "point_redemption", "Resgate de pontos"
+            elif "kick" in lowered:
+                event_type, title = "bits", "Kicks recebidos"
+            else:
+                event_type, title = "system", "Evento Kick"
+            event_id = payload.get("eventId") or payload.get("event_id") or payload.get("id") or payload.get("message_id")
+            quantity = payload.get("quantity") or payload.get("amount") or payload.get("count")
+            message = str(payload.get("message") or payload.get("content") or "")
+            if not message:
+                message = f"{user}" + (f" × {quantity}" if quantity else "")
+            self.new_event.emit({
+                "type": event_type,
+                "data": {"eventId": event_id, "userId": user_id, "title": title, "message": message, "user": user, "displayName": user, "count": quantity, "amount": payload.get("amount"), "payload": payload},
+            })
+        except Exception as error:
+            self.status_update.emit(f"Erro lendo evento Kick: {error}")

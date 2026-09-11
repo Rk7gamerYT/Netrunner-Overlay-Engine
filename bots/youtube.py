@@ -111,34 +111,75 @@ class YouTubeBot(core.base_bot.BaseBot):
         video_id = cls._video_id_from_input(source)
         return video_id or cls._resolve_channel_live(source)
 
+    def _wait_before_retry(self, seconds):
+        deadline = time.monotonic() + seconds
+        while self.running and time.monotonic() < deadline:
+            time.sleep(0.25)
+
+    @staticmethod
+    def _close_chat(chat):
+        if chat is None:
+            return
+        for method_name in ("terminate", "close"):
+            method = getattr(chat, method_name, None)
+            if method is None:
+                continue
+            try:
+                method()
+            except Exception:
+                pass
+
     def run(self):
         self.running = True
-        try:
-            video_id = self.resolve_video_id(self.channel_name)
+        reconnect_delay = 2
 
-            original_signal = signal.signal
-            def mock_signal(signum, handler): pass
-            
-            signal.signal = mock_signal 
+        while self.running:
+            chat = None
             try:
-                chat = pytchat.create(video_id=video_id)
+                video_id = self.resolve_video_id(self.channel_name)
+
+                original_signal = signal.signal
+                def mock_signal(signum, handler): pass
+                signal.signal = mock_signal
+                try:
+                    chat = pytchat.create(video_id=video_id)
+                finally:
+                    signal.signal = original_signal
+
+                self.status_update.emit(f"Frequência YouTube sintonizada: {video_id}")
+
+                while self.running and chat.is_alive():
+                    for c in chat.get().sync_items():
+                        self.new_message.emit(c.author.name, c.message, "youtube")
+                        event_id = getattr(c, "id", None) or getattr(c, "messageId", None)
+                        author_id = getattr(c.author, "channelId", None) or getattr(c.author, "id", None)
+                        amount = getattr(c, "amountValue", None) or getattr(c, "amountString", None)
+                        if amount:
+                            self.new_event.emit({"type": "superchat", "data": {"eventId": event_id, "userId": author_id, "title": "Super Chat", "message": f"{c.author.name}: {amount}", "user": c.author.name, "displayName": c.author.name, "amount": amount}})
+                        if getattr(c, "isMembership", False) or getattr(c, "memberMonth", None) or getattr(c, "isNewSponsor", False):
+                            months = getattr(c, "memberMonth", None)
+                            detail = c.author.name + (f" ({months} meses)" if months else "")
+                            self.new_event.emit({"type": "member", "data": {"eventId": event_id, "userId": author_id, "title": "Novo membro", "message": detail, "user": c.author.name, "displayName": c.author.name, "months": months}})
+                    time.sleep(1)
+
+                if self.running:
+                    raise ConnectionError("O YouTube encerrou a conexão do chat.")
+                reconnect_delay = 2
+
+            except ValueError as error:
+                self.status_update.emit(f"Erro YT: {error}")
+                break
+            except Exception as error:
+                if not self.running:
+                    break
+                self.status_update.emit(f"Erro YT: {error}")
+                self.status_update.emit(f"Reconectando YouTube em {reconnect_delay}s...")
             finally:
-                signal.signal = original_signal
+                self._close_chat(chat)
 
-            self.status_update.emit(f"Frequência YouTube sintonizada: {video_id}")
+            if not self.running:
+                break
+            self._wait_before_retry(reconnect_delay)
+            reconnect_delay = min(reconnect_delay * 2, 30)
 
-            while self.running and chat.is_alive():
-                for c in chat.get().sync_items():
-                    self.new_message.emit(c.author.name, c.message, "youtube")
-                    amount = getattr(c, "amountValue", None) or getattr(c, "amountString", None)
-                    if amount:
-                        self.new_event.emit({"type": "superchat", "data": {"title": "Super Chat", "message": f"{c.author.name}: {amount}", "user": c.author.name, "amount": amount}})
-                    if getattr(c, "isMembership", False) or getattr(c, "memberMonth", None):
-                        self.new_event.emit({"type": "member", "data": {"title": "Novo membro", "message": c.author.name, "user": c.author.name}})
-                
-                time.sleep(1)
-
-        except Exception as e:
-            self.status_update.emit(f"Erro YT: {e}")
-        finally:
-            self.running = False
+        self.running = False
