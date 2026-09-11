@@ -22,6 +22,7 @@ from core.event_schema import normalize_event, normalize_event_type
 from core.event_bus import EventBus
 from core.platforms import PLATFORM_REGISTRY
 from core.sanitization import sanitize_text
+from core.version import APP_VERSION
 
 
 PLATFORMS = {
@@ -130,7 +131,7 @@ class WebDashboardController:
         }
         self._load_overlay_settings()
         self._load_channels()
-        self._add_activity("Aplicação v1.3.0 iniciada", "cyan")
+        self._add_activity(f"Aplicação v{APP_VERSION} iniciada", "cyan")
         self._event_thread = threading.Thread(
             target=self._event_loop,
             name="DashboardEvents",
@@ -498,18 +499,59 @@ body { margin:0; padding:16px; background:transparent; font-family:Arial,sans-se
             self.ignored_users.discard(str(payload.get("userId") or payload.get("user") or ""))
             return {"ok": True, "message": "Usuário liberado."}
         if action in {"message_delete", "delete_message"}:
-            message_id = str(payload.get("messageId") or "")
-            with self.lock:
-                self.messages = deque((m for m in self.messages if str(m.get("id")) != message_id), maxlen=50)
-            self._receive_event(normalize_event(type="message_delete", data={"messageId": message_id}), payload.get("platform", "twitch"))
+            try:
+                message_id = int(payload.get("messageId"))
+            except (TypeError, ValueError):
+                return {"ok": False, "message": "Informe um ID de mensagem válido."}
+            if message_id <= 0:
+                return {"ok": False, "message": "Informe um ID de mensagem válido."}
+            removed = self._remove_chat_messages(lambda message: message.get("id") == message_id)
+            if not removed:
+                return {"ok": False, "message": "Mensagem não encontrada."}
             return {"ok": True, "message": "Mensagem removida."}
         if action in {"user_messages_delete", "delete_user"}:
             user_id = str(payload.get("userId") or payload.get("user") or "")
-            with self.lock:
-                self.messages = deque((m for m in self.messages if str(m.get("userId") or m.get("user")) != user_id), maxlen=50)
-            self._receive_event(normalize_event(type="user_messages_delete", data={"userId": user_id}), payload.get("platform", "twitch"))
-            return {"ok": True, "message": "Mensagens do usuário removidas."}
+            if not user_id:
+                return {"ok": False, "message": "Informe o usuário da mensagem."}
+            removed = self._remove_chat_messages(
+                lambda message: str(message.get("userId") or message.get("user")) == user_id
+            )
+            return {
+                "ok": True,
+                "message": "Mensagens do usuário removidas." if removed else "Nenhuma mensagem do usuário encontrada.",
+            }
         return {"ok": False, "message": "Ação de moderação desconhecida."}
+
+    def _remove_chat_messages(self, predicate):
+        """Remove dashboard/history messages and publish replayable tombstones."""
+        with self.lock:
+            removed = [message for message in self.messages if predicate(message)]
+            if not removed:
+                return []
+            removed_ids = {int(message["id"]) for message in removed if message.get("id")}
+            self.messages = deque(
+                (message for message in self.messages if message.get("id") not in removed_ids),
+                maxlen=50,
+            )
+            with engine.CHAT_LOCK:
+                engine.CHAT_MESSAGES[:] = [
+                    message for message in engine.CHAT_MESSAGES
+                    if message.get("id") not in removed_ids
+                ]
+                tombstones = []
+                for message_id in sorted(removed_ids):
+                    engine.MESSAGE_SEQUENCE += 1
+                    tombstone = {
+                        "id": engine.MESSAGE_SEQUENCE,
+                        "type": "message_delete",
+                        "messageId": message_id,
+                    }
+                    engine.CHAT_MESSAGES.append(tombstone)
+                    tombstones.append(tombstone)
+                del engine.CHAT_MESSAGES[:-engine.MAX_MESSAGES]
+        for tombstone in tombstones:
+            engine.publish_realtime("chat", tombstone)
+        return removed
 
     def test_event(self, payload=None):
         payload = payload or {}
@@ -696,6 +738,7 @@ body { margin:0; padding:16px; background:transparent; font-family:Arial,sans-se
             except psutil.Error:
                 cpu, memory = 0, 0
             return {
+                "version": APP_VERSION,
                 "capturing": self.is_capturing,
                 "platformRegistry": self.platform_registry(),
                 "eventUrl": engine.overlay_url("events"),
@@ -737,14 +780,14 @@ body { margin:0; padding:16px; background:transparent; font-family:Arial,sans-se
                 self.record_operational_log(f"[CHAT] Mensagem descartada por moderação: {sanitize_text(user, 160)}", "orange")
                 return
             record["time"] = datetime.now().strftime("%H:%M:%S")
-            self.messages.append(record)
-            self.counts[platform] += 1
             with engine.CHAT_LOCK:
                 engine.MESSAGE_SEQUENCE += 1
+                record["id"] = engine.MESSAGE_SEQUENCE
                 enriched = dict(record)
-                enriched["id"] = engine.MESSAGE_SEQUENCE
                 engine.CHAT_MESSAGES.append(enriched)
                 del engine.CHAT_MESSAGES[:-engine.MAX_MESSAGES]
+            self.messages.append(record)
+            self.counts[platform] += 1
             engine.publish_realtime("chat", enriched)
             self._log(f"[{platform.upper()}] {sanitize_text(user, 160)}: {sanitize_text(message)}", platform, activity=False)
 

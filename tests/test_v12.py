@@ -66,6 +66,28 @@ class DashboardTests(unittest.TestCase):
         with engine.CHAT_LOCK:
             self.assertEqual(engine.CHAT_MESSAGES[-1]["message"], "Oi")
 
+    def test_message_delete_removes_dashboard_and_overlay_history(self):
+        self.app._receive_message("Alice", "Indesejada", "twitch")
+        self.app._receive_message("Bob", "Mantém", "youtube")
+        message_id = self.app.snapshot()["messages"][0]["id"]
+
+        result = self.app.moderate({"action": "delete_message", "messageId": message_id})
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(
+            [message["message"] for message in self.app.snapshot()["messages"]],
+            ["Mantém"],
+        )
+        with engine.CHAT_LOCK:
+            self.assertNotIn(message_id, [message.get("id") for message in engine.CHAT_MESSAGES])
+            tombstones = [message for message in engine.CHAT_MESSAGES if message.get("type") == "message_delete"]
+        self.assertEqual(len(tombstones), 1)
+        self.assertEqual(tombstones[0]["messageId"], message_id)
+        self.assertIn("message_delete", engine.DEFAULT_LIVE_JS)
+
+        missing = self.app.moderate({"action": "delete_message", "messageId": message_id})
+        self.assertFalse(missing["ok"])
+
     def test_overlay_editor_and_real_preview_routes(self):
         for platform in ("twitch", "youtube", "tiktok", "kick"):
             self.assertIn(f"/assets/platforms/{platform}.png", engine.DEFAULT_LIVE_JS)

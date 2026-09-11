@@ -1,6 +1,6 @@
 # Overlays de chat e eventos
 
-O Netrunner Overlay Engine 1.3.0 separa a conversa das notificações da live em dois overlays locais. Cada editor possui seu próprio HTML, CSS, JavaScript, biblioteca de arquivos salvos, importação/exportação e prévia.
+O Netrunner Overlay Engine 1.3.1 separa a conversa das notificações da live em dois overlays locais. Cada editor possui seu próprio HTML, CSS, JavaScript, biblioteca de arquivos salvos, importação/exportação e prévia.
 
 ## URLs para o OBS
 
@@ -146,7 +146,7 @@ Use **Overlays salvos** para selecionar arquivos separados por tipo. O aplicativ
 - `POST /api/security/tokens` — recebe `{ "kind": "chat|events", "action": "rotate|revoke" }` no dashboard autenticado.
 - `POST /api/v1/webhooks/pix` — recebe uma confirmação Pix assinada e converte para `donation`.
 - `POST /api/v1/webhooks/stripe` — recebe uma confirmação Stripe assinada e converte para `donation`.
-- `POST /api/v1/moderation` — aplica ações de moderação na sessão (`ignore`, `allow` ou `delete`).
+- `POST /api/v1/moderation` — aplica ações de moderação na sessão. Para remover uma mensagem do dashboard e dos overlays, envie `{ "action": "delete_message", "messageId": 123 }`; também são aceitos `ignore_user`, `allow_user` e `delete_user`.
 - `GET /api/diagnostics` — retorna saúde do HTTP, WebSocket, fila, plataformas e o último teste de resiliência.
 - `POST /api/diagnostics` — inicia `{ "durationSeconds": 60 }`, limitado entre 5 segundos e 1 hora, sem injetar dados artificiais.
 

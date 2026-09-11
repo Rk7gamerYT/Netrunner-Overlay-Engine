@@ -123,7 +123,7 @@ Fase implementada na v1.3.0: o dashboard agora expõe **Configurações → Saú
 do sistema**, valida os dois Browser Sources pelos links seguros, informa o
 estado do HTTP/WebSocket, acompanha a fila de captura e executa um teste de
 resiliência de 5 segundos a 1 hora sem injetar mensagens ou eventos falsos.
-Os testes automatizados cobrem 47 casos; a validação final de longa duração
+Os testes automatizados cobrem 50 casos; a validação final de longa duração
 no OBS continua sendo uma ação do usuário durante a transmissão de teste.
 
 ## Ordem de implementação

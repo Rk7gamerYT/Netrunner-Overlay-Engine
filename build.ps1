@@ -1,6 +1,6 @@
 param(
     [string]$Python = "$PSScriptRoot\venv\Scripts\python.exe",
-    [string]$Version = "1.3.0",
+    [string]$Version = "1.3.1",
     [string]$Repository = $env:GITHUB_REPOSITORY
 )
 
@@ -12,6 +12,13 @@ $distDir = Join-Path $projectRoot "dist"
 $releaseDir = Join-Path $projectRoot "release"
 $endpointSource = Join-Path $projectRoot ".build-update-endpoint.txt"
 $originalPath = $env:Path
+
+if (-not $Repository) {
+    $origin = (& git -C $projectRoot config --get remote.origin.url 2>$null | Select-Object -First 1)
+    if ($origin -match "github\.com[/:](?<repository>[^/]+/[^/.]+)(?:\.git)?$") {
+        $Repository = $Matches.repository
+    }
+}
 
 if (Test-Path -LiteralPath $Python) {
     $pythonCommand = (Resolve-Path -LiteralPath $Python).Path

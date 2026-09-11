@@ -9,11 +9,13 @@ import webview
 import engine
 from core.realtime_gateway import LocalRealtimeGateway
 from core.updater import (
-    UPDATE_MANIFEST_URL,
+    CURRENT_VERSION,
     check_for_update as fetch_update,
     download_and_verify,
+    get_update_manifest_url,
     launch_installer,
 )
+from core.version import APP_VERSION
 from ui.web_dashboard import WebDashboardController
 
 
@@ -41,20 +43,27 @@ class DesktopAPI:
         self._window = None
         self._closed = False
         self._pending_update = None
+        self._installing_update = False
 
     def check_for_update(self):
-        if not UPDATE_MANIFEST_URL:
+        if not get_update_manifest_url():
             return {
                 "ok": False,
                 "message": "Esta build ainda não possui o endereço do manifesto de atualizações.",
+                "current_version": CURRENT_VERSION,
             }
         try:
             update = fetch_update()
         except Exception as error:
-            return {"ok": False, "message": f"Não foi possível verificar atualizações: {error}"}
+            self._pending_update = None
+            return {
+                "ok": False,
+                "message": f"Não foi possível verificar atualizações: {error}",
+                "current_version": CURRENT_VERSION,
+            }
         if update is None:
             self._pending_update = None
-            return {"ok": True, "available": False, "current_version": "1.3.0"}
+            return {"ok": True, "available": False, "current_version": CURRENT_VERSION}
         self._pending_update = update
         return {
             "ok": True,
@@ -64,13 +73,17 @@ class DesktopAPI:
         }
 
     def install_update(self):
+        if self._installing_update:
+            return {"ok": False, "message": "A atualização já está sendo preparada."}
         update = self._pending_update
         if update is None:
             return {"ok": False, "message": "Nenhuma atualização pendente."}
+        self._installing_update = True
         try:
             installer = download_and_verify(update)
             launch_installer(installer)
         except Exception as error:
+            self._installing_update = False
             return {"ok": False, "message": f"Não foi possível preparar a atualização: {error}"}
         self.shutdown()
         if self._window is not None:
@@ -178,7 +191,7 @@ def main():
 
     api = DesktopAPI(server_process)
     window = webview.create_window(
-        "Netrunner Overlay Engine v1.3.0",
+        f"Netrunner Overlay Engine v{APP_VERSION}",
         engine.dashboard_url(),
         width=1540,
         height=960,

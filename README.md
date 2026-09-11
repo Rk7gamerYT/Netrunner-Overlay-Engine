@@ -11,7 +11,7 @@ O Netrunner reúne mensagens públicas de lives da Twitch, YouTube, TikTok e Kic
 ## Instalação
 
 1. Abra a página **Releases** deste repositório.
-2. Baixe `NetrunnerOverlay-Setup-v1.3.0-windows-x64.exe`.
+2. Baixe `NetrunnerOverlay-Setup-v1.3.1-windows-x64.exe`.
 3. Execute o instalador e escolha o idioma.
 4. Ao concluir, abra **Netrunner Overlay Engine** pelo Menu Iniciar ou pelo atalho opcional da área de trabalho.
 

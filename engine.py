@@ -447,6 +447,29 @@ function addChatMessage(
 }
 
 
+function removeChatMessage(messageId) {
+    const targetId = String(messageId);
+    document.querySelectorAll("#log [data-id]").forEach(element => {
+        if (String(element.dataset.id) === targetId) {
+            element.remove();
+        }
+    });
+}
+
+function handleChatItem(item) {
+    const messageId = Number(item?.id);
+    if (!Number.isFinite(messageId)) {
+        return;
+    }
+    if (item.type === "message_delete") {
+        removeChatMessage(item.messageId);
+    } else {
+        addChatMessage(item.user, item.message, item.platform, messageId);
+    }
+    lastMessageId = Math.max(lastMessageId, messageId);
+}
+
+
 async function updateChat() {
 
     if (realtimeConnected) {
@@ -484,27 +507,7 @@ async function updateChat() {
 
         data.forEach(msg => {
 
-            const messageId = Number(msg.id);
-
-            if (!Number.isFinite(messageId)) {
-                return;
-            }
-
-            addChatMessage(
-
-                msg.user,
-
-                msg.message,
-
-                msg.platform,
-
-                messageId
-            );
-
-            lastMessageId = Math.max(
-                lastMessageId,
-                messageId
-            );
+            handleChatItem(msg);
         });
 
     } catch (e) {
@@ -538,8 +541,7 @@ function connectRealtimeChat() {
                 if (item.type === "hello") return;
                 const messageId = Number(item.id);
                 if (!Number.isFinite(messageId) || messageId <= lastMessageId) return;
-                addChatMessage(item.user, item.message, item.platform, messageId);
-                lastMessageId = messageId;
+                handleChatItem(item);
             } catch (_) {}
         };
         socket.onclose = () => {

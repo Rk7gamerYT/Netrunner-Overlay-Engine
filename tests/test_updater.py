@@ -48,6 +48,26 @@ class UpdaterTests(unittest.TestCase):
             update = check_for_update("https://example.test/latest.json", "1.2.6")
         self.assertEqual(update.version, "1.2.7")
 
+    def test_check_accepts_utf8_bom_manifest(self):
+        payload = {
+            "version": "1.3.1",
+            "download_url": "https://example.test/setup.exe",
+            "sha256": "b" * 64,
+        }
+        response = _Response(json.dumps(payload).encode("utf-8-sig"))
+        with mock.patch("core.updater.urllib.request.urlopen", return_value=response):
+            update = check_for_update("https://example.test/latest.json", "1.3.0")
+        self.assertEqual(update.version, "1.3.1")
+
+    def test_manifest_rejects_non_https_notes(self):
+        with self.assertRaises(ValueError):
+            UpdateInfo.from_payload({
+                "version": "1.3.1",
+                "download_url": "https://example.test/setup.exe",
+                "sha256": "b" * 64,
+                "notes_url": "http://example.test/release",
+            })
+
     def test_download_verifies_sha256_before_replacing(self):
         content = b"signed installer bytes"
         update = UpdateInfo(
