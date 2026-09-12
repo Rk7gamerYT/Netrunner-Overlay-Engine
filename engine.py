@@ -792,7 +792,7 @@ def events_overlay():
 
 @app.route("/api/v1")
 def api_info():
-    return jsonify({"name": "Netrunner Pulse API", "version": "1", "endpoints": {"chat": "/api/v1/chat", "events": "/api/v1/events", "pixWebhook": "/api/v1/webhooks/pix", "stripeWebhook": "/api/v1/webhooks/stripe"}})
+    return jsonify({"name": "Netrunner Pulse API", "version": "1", "endpoints": {"chat": "/api/v1/chat", "state": "/api/state", "events": "/api/v1/events", "pixWebhook": "/api/v1/webhooks/pix", "stripeWebhook": "/api/v1/webhooks/stripe"}})
 
 
 @app.route("/api/v1/chat")

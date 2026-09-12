@@ -17,6 +17,9 @@ KICK_CHANNEL_API = "https://kick.com/api/v2/channels/{slug}"
 
 class KickBot(BaseBot):
 
+    supports_viewer_count = True
+    supports_chat_send = False
+
     def __init__(self, channel_name):
 
         super().__init__(channel_name)
@@ -24,6 +27,20 @@ class KickBot(BaseBot):
         self.pusher = None
 
         self.chatroom_id = None
+        self._channel_slug = None
+
+    @staticmethod
+    def extract_viewer_count(payload):
+        if not isinstance(payload, dict):
+            return None
+        livestream = payload.get("livestream") if isinstance(payload.get("livestream"), dict) else {}
+        for value in (
+            payload.get("viewer_count"), payload.get("viewerCount"),
+            livestream.get("viewer_count"), livestream.get("viewerCount"),
+        ):
+            if value is not None and str(value).isdigit():
+                return int(value)
+        return None
 
 
     def _normalize_channel(self):
@@ -73,6 +90,8 @@ class KickBot(BaseBot):
         response.raise_for_status()
 
         channel_data = response.json()
+        self._channel_slug = slug
+        self.viewer_count_update.emit(self.extract_viewer_count(channel_data) or 0)
 
         chatroom = channel_data.get("chatroom") or {}
 
@@ -84,6 +103,22 @@ class KickBot(BaseBot):
             )
 
         return slug, str(chatroom_id)
+
+    def _update_viewer_count(self):
+        if not self._channel_slug:
+            return
+        try:
+            response = requests.get(
+                KICK_CHANNEL_API.format(slug=self._channel_slug),
+                headers={"Accept": "application/json", "User-Agent": "Mozilla/5.0 NetrunnerOverlay/1.3"},
+                timeout=8,
+            )
+            response.raise_for_status()
+            count = self.extract_viewer_count(response.json())
+            if count is not None:
+                self.viewer_count_update.emit(count)
+        except Exception as error:
+            self.status_update.emit(f"Aviso Kick: espectadores indisponíveis ({error})")
 
 
     def run(self):
@@ -169,8 +204,11 @@ class KickBot(BaseBot):
 
             self.pusher.connect()
 
+            next_viewer_sample = time.monotonic() + 30
             while self.running:
-
+                if time.monotonic() >= next_viewer_sample:
+                    self._update_viewer_count()
+                    next_viewer_sample = time.monotonic() + 30
                 time.sleep(0.25)
 
         except Exception:
@@ -186,6 +224,7 @@ class KickBot(BaseBot):
                     pass
 
                 self.pusher = None
+                self._channel_slug = None
 
 
     def handle_message(self, data):

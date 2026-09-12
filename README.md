@@ -4,14 +4,14 @@
   <img src="assets/netrunner.png" alt="Netrunner Overlay Engine" width="150">
 </p>
 
-O Netrunner reúne mensagens públicas de lives da Twitch, YouTube, TikTok e Kick em um único chat para exibição no OBS Studio. Não é necessário informar senhas, cookies ou credenciais das suas contas.
+O Netrunner reúne mensagens públicas de lives da Twitch, YouTube, TikTok e Kick em um único chat para exibição no OBS Studio. O modo de leitura não exige senhas, cookies ou credenciais. O aplicativo é somente leitura: não envia mensagens às plataformas nem oferece login de contas.
 
 ![Dashboard do Netrunner](docs/images/dashboard.png)
 
 ## Instalação
 
 1. Abra a página **Releases** deste repositório.
-2. Baixe `NetrunnerOverlay-Setup-v1.3.1-windows-x64.exe`.
+2. Baixe `NetrunnerOverlay-Setup-v1.3.2-windows-x64.exe`.
 3. Execute o instalador e escolha o idioma.
 4. Ao concluir, abra **Netrunner Overlay Engine** pelo Menu Iniciar ou pelo atalho opcional da área de trabalho.
 
@@ -76,6 +76,17 @@ escolhido sem injetar mensagens ou alertas falsos na transmissão. Para validar
 o comportamento real do OBS, deixe a fonte aberta durante um teste longo e
 confira o resultado no dashboard.
 
+## Espectadores pelo dashboard
+
+O Dashboard mostra o número atual de espectadores em cada cartão de plataforma.
+Essa informação é atualizada pelos conectores durante a captura e pode ficar
+como `—` quando a plataforma não fornecer o dado ou a autenticação necessária
+não estiver disponível.
+
+O Dashboard e a página **Chat ao Vivo** são somente leitura. Os eventos públicos e os overlays continuam disponíveis sem login.
+
+Na Twitch, a contagem pela API depende de `NETRUNNER_TWITCH_CLIENT_ID` e `NETRUNNER_TWITCH_ACCESS_TOKEN` no ambiente; sem eles, o contador permanece indisponível. Isso não impede a leitura do chat.
+
 ## Desinstalação
 
 1. Abra **Configurações do Windows → Aplicativos → Aplicativos instalados**.
@@ -101,7 +112,7 @@ O desinstalador pergunta se você também deseja apagar as personalizações sal
 ## Privacidade
 
 - As mensagens permanecem temporariamente na memória e não são gravadas em histórico pelo Netrunner.
-- O aplicativo não possui telemetria própria nem solicita credenciais das plataformas.
+- O aplicativo não possui telemetria própria nem persiste credenciais das plataformas; credenciais opcionais são lidas somente do ambiente do processo.
 - O servidor do overlay aceita somente conexões locais em `127.0.0.1`.
 - O projeto é independente e não possui vínculo oficial com Twitch, YouTube, TikTok, Kick ou OBS.
 

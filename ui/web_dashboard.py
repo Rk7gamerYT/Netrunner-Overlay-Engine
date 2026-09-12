@@ -45,7 +45,8 @@ ASSET_MIME_TYPES = {
     ".wav": "audio/wav",
     ".ogg": "audio/ogg",
 }
-EVENT_DEDUPE_TTL_SECONDS = 120
+EVENT_DEDUPE_TTL_SECONDS = 3600
+EVENT_DEDUPE_MAX_ENTRIES = 4096
 PAYMENT_SOURCES = {"pix", "stripe"}
 DIAGNOSTIC_MIN_SECONDS = 5
 DIAGNOSTIC_MAX_SECONDS = 3600
@@ -87,6 +88,8 @@ class WebDashboardController:
         self.activity = deque(maxlen=80)
         self.logs = deque(maxlen=200)
         self.counts = {platform: 0 for platform in PLATFORMS}
+        self.viewer_counts = {platform: None for platform in PLATFORMS}
+        self.viewer_count_updated_at = {platform: None for platform in PLATFORMS}
         self.connected = {platform: False for platform in PLATFORMS}
         self.status_labels = {platform: "Desconectado" for platform in PLATFORMS}
         self.last_activity = {platform: None for platform in PLATFORMS}
@@ -123,6 +126,7 @@ class WebDashboardController:
             streamer_id=os.environ.get("NETRUNNER_STREAMER_ID", "local"),
         )
         self.channels_config_path = channels_config_path or default_channels_config_path()
+        self.platform_bots = {}
         self.overlay_is_saved = False
         self.event_overlay = {
             "html": engine.DEFAULT_EVENT_HTML,
@@ -147,12 +151,17 @@ class WebDashboardController:
                 continue
             try:
                 kind = event[0]
+                if kind == "capture":
+                    self._dispatch_capture_event(*event[1:])
+                    continue
                 if kind == "message":
                     self._receive_message(*event[1:])
                 elif kind == "event":
                     self._receive_event(*event[1:])
                 elif kind == "status":
                     self._receive_status(*event[1:])
+                elif kind == "viewer_count":
+                    self._receive_viewer_count(*event[1:])
                 elif kind == "finished":
                     self._bot_finished(*event[1:])
                 else:
@@ -165,6 +174,20 @@ class WebDashboardController:
             self.events.put_nowait(payload)
         except queue.Full:
             self.record_operational_log("[EVENTOS] Registro descartado: fila de captura cheia.", "orange")
+
+    def _dispatch_capture_event(self, platform, bot, payload):
+        """Ignore queued callbacks from a replaced capture instance."""
+        with self.lock:
+            if self.platform_bots.get(platform) is not bot:
+                return
+            handlers = {
+                "message": self._receive_message,
+                "event": self._receive_event,
+                "status": self._receive_status,
+                "viewer_count": self._receive_viewer_count,
+                "finished": self._bot_finished,
+            }
+            handlers[payload[0]](*payload[1:])
 
     def start_capture(self, channels):
         with self.lock:
@@ -193,23 +216,29 @@ class WebDashboardController:
                     continue
                 bot = bot_class(channel)
                 bot.new_message.connect(
-                    lambda user, message, source:
-                    self._enqueue_capture_event(("message", user, message, source))
+                    lambda user, message, source, current=bot, platform=platform:
+                    self._enqueue_capture_event(("capture", platform, current, ("message", user, message, platform)))
                 )
                 if hasattr(bot, "new_event"):
                     bot.new_event.connect(
-                        lambda event, source=platform:
-                        self._enqueue_capture_event(("event", event, source))
+                        lambda event, source=platform, current=bot:
+                        self._enqueue_capture_event(("capture", source, current, ("event", event, source)))
                     )
                 bot.status_update.connect(
-                    lambda status, source=platform:
-                    self._enqueue_capture_event(("status", source, status))
+                    lambda status, source=platform, current=bot:
+                    self._enqueue_capture_event(("capture", source, current, ("status", source, status)))
                 )
+                if hasattr(bot, "viewer_count_update"):
+                    bot.viewer_count_update.connect(
+                        lambda count, source=platform, current=bot:
+                        self._enqueue_capture_event(("capture", source, current, ("viewer_count", source, count)))
+                    )
                 bot.finished.connect(
                     lambda current=bot, source=platform:
-                    self._enqueue_capture_event(("finished", source, current))
+                    self._enqueue_capture_event(("capture", source, current, ("finished", source, current)))
                 )
                 self.bots.append(bot)
+                self.platform_bots[platform] = bot
                 self._set_platform(platform, False, "Conectando...")
                 bot.start()
                 started += 1
@@ -607,6 +636,7 @@ body { margin:0; padding:16px; background:transparent; font-family:Arial,sans-se
         stopped = all(wait_results)
         with self.lock:
             self.bots = [bot for bot in self.bots if bot.isRunning()]
+            self.platform_bots = {platform: bot for platform, bot in self.platform_bots.items() if bot.isRunning()}
             for platform in PLATFORMS:
                 self._set_platform(platform, False, "Desconectado")
             if stopped:
@@ -748,6 +778,13 @@ body { margin:0; padding:16px; background:transparent; font-family:Arial,sans-se
                         "connected": self.connected[platform],
                         "status": self.status_labels[platform],
                         "count": self.counts[platform],
+                        "viewerCount": self.viewer_counts[platform],
+                        "viewerCountUpdatedAt": self.viewer_count_updated_at[platform],
+                        "capabilities": {
+                            "viewerCount": bool(PLATFORM_REGISTRY[platform].get("capabilities", {}).get("viewerCount")),
+                            "chatSend": False,
+                            "chatSendAvailable": False,
+                        },
                         "channel": self.channels[platform],
                         "lastActivity": self.last_activity[platform],
                     }
@@ -765,6 +802,20 @@ body { margin:0; padding:16px; background:transparent; font-family:Arial,sans-se
                     "resources": f"{cpu:.0f}% / {memory:.0f} MB",
                 },
             }
+
+    def _receive_viewer_count(self, platform, count):
+        if platform not in PLATFORMS:
+            self.record_operational_log(f"[ESPECTADORES] Plataforma inválida: {platform!r}", "orange")
+            return
+        try:
+            if isinstance(count, bool) or not str(count).isdigit():
+                return
+            value = int(count)
+        except (TypeError, ValueError, OverflowError):
+            return
+        with self.lock:
+            self.viewer_counts[platform] = value
+            self.viewer_count_updated_at[platform] = int(time.time() * 1000)
 
     def _receive_message(self, user, message, platform):
         if platform not in PLATFORMS:
@@ -835,11 +886,15 @@ body { margin:0; padding:16px; background:transparent; font-family:Arial,sans-se
                 expired = [key for key, seen_at in self._event_dedup.items() if now - seen_at > EVENT_DEDUPE_TTL_SECONDS]
                 for key in expired:
                     del self._event_dedup[key]
-                dedup_key = f"{platform}:{event_type}:{source_id}"
+                bot = self.platform_bots.get(platform)
+                channel = getattr(bot, "channel_name", self.channels.get(platform, ""))
+                dedup_key = (platform, channel, event_type, str(source_id))
                 if dedup_key in self._event_dedup:
                     self.record_operational_log(f"[EVENTOS] Evento duplicado descartado: {dedup_key}", "orange")
                     return
                 self._event_dedup[dedup_key] = now
+                while len(self._event_dedup) > EVENT_DEDUPE_MAX_ENTRIES:
+                    del self._event_dedup[next(iter(self._event_dedup))]
             published = self.event_bus.publish(record)
             record["id"] = published["id"]
             self.events_feed.append(record)
@@ -869,7 +924,9 @@ body { margin:0; padding:16px; background:transparent; font-family:Arial,sans-se
         with self.lock:
             if bot in self.bots:
                 self.bots.remove(bot)
-            self._set_platform(platform, False, "Desconectado")
+            if self.platform_bots.get(platform) is bot:
+                self.platform_bots.pop(platform, None)
+                self._set_platform(platform, False, "Desconectado")
             if self.is_capturing and not any(current.isRunning() for current in self.bots):
                 self.is_capturing = False
             if self.is_stopping and not any(current.isRunning() for current in self.bots):
@@ -878,6 +935,9 @@ body { margin:0; padding:16px; background:transparent; font-family:Arial,sans-se
     def _set_platform(self, platform, connected, label):
         self.connected[platform] = connected
         self.status_labels[platform] = label
+        if not connected:
+            self.viewer_counts[platform] = None
+            self.viewer_count_updated_at[platform] = None
 
     def _log(self, text, color="white", activity=True):
         entry = {

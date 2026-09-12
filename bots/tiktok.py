@@ -16,7 +16,8 @@ from bots.tiktok_transport import TikTokLiveClient
 from TikTokLive.events import (
     CommentEvent,
     ConnectEvent,
-    DisconnectEvent
+    DisconnectEvent,
+    RoomUserSeqEvent,
 )
 try:
     from TikTokLive.events import GiftEvent, FollowEvent, LikeEvent, ShareEvent
@@ -54,6 +55,9 @@ def websocket_rejection_status(error):
 
 
 class TikTokBot(BaseBot):
+
+    supports_viewer_count = True
+    supports_chat_send = False
 
     def __init__(self, channel_name):
         super().__init__(channel_name)
@@ -99,9 +103,7 @@ class TikTokBot(BaseBot):
 
             try:
 
-                client = TikTokLiveClient(
-                    unique_id=username
-                )
+                client = TikTokLiveClient(unique_id=username)
                 with self._client_lock:
                     self._client = client
 
@@ -111,6 +113,15 @@ class TikTokBot(BaseBot):
                     self.status_update.emit(
                         f"TikTok conectado: @{username}"
                     )
+
+                @client.on(RoomUserSeqEvent)
+                async def on_viewer_update(event):
+                    count = getattr(event, "total_user", None) or getattr(event, "total", None) or getattr(event, "popularity", None)
+                    try:
+                        if count is not None:
+                            self.viewer_count_update.emit(max(0, int(count)))
+                    except (TypeError, ValueError):
+                        pass
 
                 @client.on(CommentEvent)
                 async def on_comment(event):

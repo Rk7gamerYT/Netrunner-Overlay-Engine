@@ -1,6 +1,6 @@
 # Overlays de chat e eventos
 
-O Netrunner Overlay Engine 1.3.1 separa a conversa das notificações da live em dois overlays locais. Cada editor possui seu próprio HTML, CSS, JavaScript, biblioteca de arquivos salvos, importação/exportação e prévia.
+O Netrunner Overlay Engine 1.3.2 separa a conversa das notificações da live em dois overlays locais. Cada editor possui seu próprio HTML, CSS, JavaScript, biblioteca de arquivos salvos, importação/exportação e prévia.
 
 ## URLs para o OBS
 

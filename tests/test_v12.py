@@ -66,6 +66,90 @@ class DashboardTests(unittest.TestCase):
         with engine.CHAT_LOCK:
             self.assertEqual(engine.CHAT_MESSAGES[-1]["message"], "Oi")
 
+    def test_viewer_count_and_read_only_contract(self):
+        self.app._receive_viewer_count("twitch", "1234")
+        state = self.app.snapshot()
+        self.assertEqual(state["platforms"]["twitch"]["viewerCount"], 1234)
+        for platform in state["platforms"].values():
+            self.assertFalse(platform["capabilities"]["chatSend"])
+            self.assertFalse(platform["capabilities"]["chatSendAvailable"])
+        self.assertFalse(hasattr(self.app, "credentials"))
+        self.assertFalse(hasattr(self.app, "send_chat_message"))
+
+    def test_invalid_viewer_counts_do_not_become_zero(self):
+        for invalid in (True, False, -1, 2.5, None, "unknown"):
+            self.app._receive_viewer_count("kick", invalid)
+            self.assertIsNone(self.app.viewer_counts["kick"])
+        self.app._receive_viewer_count("kick", 0)
+        self.assertEqual(self.app.viewer_counts["kick"], 0)
+
+    def test_old_capture_callbacks_are_ignored(self):
+        old, current = FakeBot("old"), FakeBot("new")
+        self.app.platform_bots["twitch"] = current
+        self.app._set_platform("twitch", True, "Conectado")
+        for payload in (
+            ("message", "old", "stale", "twitch"),
+            ("status", "twitch", "Desconectado"),
+            ("viewer_count", "twitch", 999),
+            ("event", {"type": "follow", "data": {"eventId": "old"}}, "twitch"),
+            ("finished", "twitch", old),
+        ):
+            self.app._dispatch_capture_event("twitch", old, payload)
+        self.assertTrue(self.app.connected["twitch"])
+        self.assertEqual(len(self.app.messages), 0)
+        self.assertEqual(len(self.app.events_feed), 0)
+        self.assertIsNone(self.app.viewer_counts["twitch"])
+        self.app._dispatch_capture_event("twitch", current, ("viewer_count", "twitch", 12))
+        self.assertEqual(self.app.viewer_counts["twitch"], 12)
+
+    def test_replayed_event_is_deduplicated_beyond_two_minutes(self):
+        from unittest.mock import patch
+        event = {"type": "follow", "data": {"eventId": "replay-1", "user": "Alice"}}
+        with patch("ui.web_dashboard.time.monotonic", return_value=1000):
+            self.app._receive_event(event, "kick")
+        with patch("ui.web_dashboard.time.monotonic", return_value=1300):
+            self.app._receive_event(event, "kick")
+        self.assertEqual(len(self.app.events_feed), 1)
+        # The same provider ID in another channel must not suppress its event.
+        self.app.channels["kick"] = "another-channel"
+        self.app._receive_event(event, "kick")
+        self.assertEqual(len(self.app.events_feed), 2)
+
+    def test_events_without_ids_are_not_silently_deduplicated(self):
+        event = {"type": "follow", "data": {"user": "Alice"}}
+        self.app._receive_event(event, "kick")
+        self.app._receive_event(event, "kick")
+        self.assertEqual(len(self.app.events_feed), 2)
+
+    def test_platform_login_and_send_endpoints_removed(self):
+        client = engine.app.test_client()
+        for path in ("/api/chat/send", "/api/v1/chat/send", "/api/auth"):
+            response = client.post(
+                path, json={"platform": "twitch", "message": "Must not send"},
+                headers={"X-Netrunner-Admin-Token": engine.admin_token()},
+            )
+            self.assertEqual(response.status_code, 404, path)
+        self.assertEqual(client.get("/api/auth").status_code, 404)
+
+    def test_all_adapters_reject_chat_sending(self):
+        from bots.twitch import TwitchBot
+        from bots.tiktok import TikTokBot
+        from bots.kick import KickBot
+        for adapter in (TwitchBot, TikTokBot, KickBot, YouTubeBot):
+            bot = adapter("channel")
+            self.assertFalse(bot.supports_chat_send)
+            self.assertFalse(bot.chat_send_available)
+            with self.assertRaises(NotImplementedError):
+                bot.send_message("Must not send")
+
+    def test_dashboard_has_no_platform_login_or_composer(self):
+        from pathlib import Path
+        html = (Path(__file__).resolve().parents[1] / "ui" / "dashboard.html").read_text(encoding="utf-8")
+        for removed in ("chat-compose", "platformAuth", "/api/auth", "/api/chat/send", "sendChat("):
+            self.assertNotIn(removed, html)
+        for retained in ('id="fullChat"', 'id="fullEvents"', "data-viewers"):
+            self.assertIn(retained, html)
+
     def test_message_delete_removes_dashboard_and_overlay_history(self):
         self.app._receive_message("Alice", "Indesejada", "twitch")
         self.app._receive_message("Bob", "Mantém", "youtube")

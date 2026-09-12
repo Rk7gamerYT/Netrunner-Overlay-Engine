@@ -4,10 +4,10 @@ O Netrunner mantém um adaptador por plataforma, mas entrega mensagens e eventos
 
 | Plataforma | Transporte atual | Eventos no modo atual | Limitações conhecidas |
 |---|---|---|---|
-| Twitch | IRC anônimo | Chat, inscrições, resubs, raids e Bits | Follows, Channel Points e eventos avançados precisam de EventSub com autenticação. |
-| YouTube Live | `pytchat` com polling | Chat, Super Chat e membros | Eventos de inscritos e recursos oficiais da API exigem API key/OAuth. |
-| TikTok Live | TikTokLive WebSocket | Chat, gifts, follows, likes e shares | A disponibilidade depende da live e da compatibilidade do transporte TikTokLive. |
-| Kick | Pusher | Chat, subscriptions, gifts, follows, raids e eventos de doação quando publicados pela sala | Os nomes e payloads de eventos podem variar; o adaptador conserva o payload original para diagnóstico. |
+| Twitch | IRC + Helix opcional | Chat, inscrições, resubs, raids, Bits e espectadores | Contagem e envio exigem credenciais; follows, Channel Points e eventos avançados precisam de EventSub. |
+| YouTube Live | `pytchat` + leitura da página | Chat, Super Chat, membros e espectadores | Envio não está disponível no modo atual; a contagem pode ficar indisponível se o markup não a fornecer. |
+| TikTok Live | TikTokLive WebSocket | Chat, gifts, follows, likes, shares e espectadores | Envio exige `NETRUNNER_TIKTOK_SESSIONID`; a disponibilidade depende da live e do transporte. |
+| Kick | Pusher + API pública do canal | Chat, subscriptions, gifts, follows, raids, doações e espectadores | Envio não está disponível no modo atual; nomes e payloads de eventos podem variar. |
 
 ## Contrato dos eventos
 
@@ -23,4 +23,4 @@ Todos os adaptadores tentam preencher os mesmos campos em `event.data`:
 
 Twitch, TikTok, YouTube e Kick mantêm o cancelamento pelo dashboard. Twitch e TikTok usam o heartbeat de seus transportes; YouTube mantém polling; Kick usa o keepalive do Pusher. YouTube e Kick reconectam com backoff progressivo, enquanto todos os eventos de status, chat e alertas atualizam `lastActivity` no estado do dashboard.
 
-O estado de cada plataforma está disponível em `GET /api/state` e o registro de capacidades em `GET /api/platforms`.
+O estado de cada plataforma está disponível em `GET /api/state` e o registro de capacidades em `GET /api/platforms`. Cada item de plataforma inclui `viewerCount`, `viewerCountUpdatedAt` e as capacidades `viewerCount`, `chatSend` e `chatSendAvailable`. O dashboard usa `POST /api/chat/send` para enviar uma mensagem pela plataforma selecionada.

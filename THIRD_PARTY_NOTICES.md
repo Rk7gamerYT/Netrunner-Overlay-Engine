@@ -4,7 +4,7 @@ O Netrunner Overlay Engine inclui componentes de terceiros. Esses componentes pe
 
 ## pywebview 6.2.1
 
-A interface da versão 1.3.1 utiliza pywebview sob a licença BSD de 3 cláusulas. A biblioteca hospeda o dashboard HTML/CSS na janela nativa do Windows por meio do WebView2. O texto acompanha o pacote em `licenses/pywebview-LICENSE.txt`.
+A interface da versão 1.3.2 utiliza pywebview sob a licença BSD de 3 cláusulas. A biblioteca hospeda o dashboard HTML/CSS na janela nativa do Windows por meio do WebView2. O texto acompanha o pacote em `licenses/pywebview-LICENSE.txt`.
 
 Projeto: https://github.com/r0x0r/pywebview
 

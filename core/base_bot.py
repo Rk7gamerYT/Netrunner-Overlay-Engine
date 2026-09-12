@@ -14,6 +14,12 @@ class Signal:
 
 class BaseBot:
 
+    # Adapters override these flags when the underlying platform transport
+    # exposes the corresponding operation.  Credentials are never persisted
+    # by the dashboard; adapters may read them from the process environment.
+    supports_viewer_count = False
+    supports_chat_send = False
+
     def __init__(self, channel_name):
         self.channel_name = channel_name
         self.running = False
@@ -22,9 +28,22 @@ class BaseBot:
         # Mantemos o sinal separado do chat para que cada tipo tenha seu próprio
         # overlay e endpoint.
         self.new_event = Signal()
+        self.viewer_count_update = Signal()
         self.status_update = Signal()
         self.finished = Signal()
         self._thread = None
+
+    def send_message(self, message):
+        """Send a message to the connected platform chat.
+
+        Read-only adapters keep the common interface and fail explicitly so
+        the dashboard can explain why a platform cannot receive messages.
+        """
+        raise NotImplementedError("Esta plataforma não permite envio de mensagens neste modo.")
+
+    @property
+    def chat_send_available(self):
+        return False
 
     def _run_wrapper(self):
         try:

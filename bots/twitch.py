@@ -3,7 +3,10 @@ import re
 import socket
 import ssl
 import time
+import os
 from urllib.parse import urlparse
+
+import requests
 
 from core.base_bot import BaseBot
 
@@ -14,6 +17,9 @@ TWITCH_PORT = 6697
 
 class TwitchBot(BaseBot):
 
+    supports_viewer_count = True
+    supports_chat_send = False
+
     def __init__(self, channel_name):
 
         super().__init__(channel_name)
@@ -21,7 +27,9 @@ class TwitchBot(BaseBot):
         self.message_cache = {}
 
         self.sock = None
-
+        self._channel = None
+        self.client_id = os.environ.get("NETRUNNER_TWITCH_CLIENT_ID", "").strip()
+        self.access_token = os.environ.get("NETRUNNER_TWITCH_ACCESS_TOKEN", "").strip()
 
     def _normalize_channel(self):
 
@@ -69,6 +77,34 @@ class TwitchBot(BaseBot):
         self.sock.sendall(
             commands.encode("utf-8")
         )
+
+    @staticmethod
+    def _extract_viewer_count(payload):
+        if isinstance(payload, dict):
+            for key in ("viewer_count", "viewerCount", "concurrent_viewers", "concurrentViewers"):
+                value = payload.get(key)
+                if value is not None and str(value).isdigit():
+                    return int(value)
+        return None
+
+    def _update_viewer_count(self, channel):
+        client_id = self.client_id
+        token = self.access_token
+        if not client_id or not token:
+            return
+        try:
+            response = requests.get(
+                "https://api.twitch.tv/helix/streams",
+                params={"user_login": channel},
+                headers={"Client-ID": client_id, "Authorization": f"Bearer {token}"},
+                timeout=8,
+            )
+            response.raise_for_status()
+            items = response.json().get("data") or []
+            count = self._extract_viewer_count(items[0]) if items else 0
+            self.viewer_count_update.emit(count)
+        except Exception as error:
+            self.status_update.emit(f"Aviso Twitch: espectadores indisponíveis ({error})")
 
 
     def _close_socket(self):
@@ -183,8 +219,13 @@ class TwitchBot(BaseBot):
         joined = False
 
         connected_at = time.monotonic()
+        next_viewer_sample = 0
 
         while self.running:
+
+            if time.monotonic() >= next_viewer_sample:
+                self._update_viewer_count(channel)
+                next_viewer_sample = time.monotonic() + 30
 
             try:
 
@@ -285,11 +326,11 @@ class TwitchBot(BaseBot):
         while self.running:
 
             try:
-
                 self.status_update.emit(
                     f"Conectando à Twitch: #{channel}"
                 )
 
+                self._channel = channel
                 self._connect(channel)
 
                 self._listen(channel)
@@ -307,6 +348,7 @@ class TwitchBot(BaseBot):
             finally:
 
                 self._close_socket()
+                self._channel = None
 
             if not self.running:
                 break

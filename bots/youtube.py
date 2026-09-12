@@ -13,6 +13,9 @@ YOUTUBE_VIDEO_ID_PATTERN = re.compile(r"[0-9A-Za-z_-]{11}")
 
 
 class YouTubeBot(core.base_bot.BaseBot):
+    supports_viewer_count = True
+    supports_chat_send = False
+
     @staticmethod
     def _compact(value):
         return re.sub(r"\s+", "", str(value or "").strip())
@@ -111,6 +114,35 @@ class YouTubeBot(core.base_bot.BaseBot):
         video_id = cls._video_id_from_input(source)
         return video_id or cls._resolve_channel_live(source)
 
+    @staticmethod
+    def extract_viewer_count(source):
+        """Extract the current concurrent viewer count from YouTube markup."""
+        text = str(source or "")
+        patterns = (
+            r'"concurrentViewers"\s*:\s*"?(\d+)"?',
+            r'"viewers"\s*:\s*"?(\d+)"?',
+            r'"viewerCount"\s*:\s*"?(\d+)"?',
+        )
+        for pattern in patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                return int(match.group(1))
+        return None
+
+    def _update_viewer_count(self, video_id):
+        try:
+            response = requests.get(
+                f"https://www.youtube.com/watch?v={video_id}",
+                headers={"User-Agent": "Mozilla/5.0 NetrunnerOverlay/1.3"},
+                timeout=10,
+            )
+            response.raise_for_status()
+            count = self.extract_viewer_count(response.text)
+            if count is not None:
+                self.viewer_count_update.emit(count)
+        except Exception as error:
+            self.status_update.emit(f"Aviso YouTube: espectadores indisponíveis ({error})")
+
     def _wait_before_retry(self, seconds):
         deadline = time.monotonic() + seconds
         while self.running and time.monotonic() < deadline:
@@ -147,8 +179,13 @@ class YouTubeBot(core.base_bot.BaseBot):
                     signal.signal = original_signal
 
                 self.status_update.emit(f"Frequência YouTube sintonizada: {video_id}")
+                self._update_viewer_count(video_id)
+                next_viewer_sample = time.monotonic() + 30
 
                 while self.running and chat.is_alive():
+                    if time.monotonic() >= next_viewer_sample:
+                        self._update_viewer_count(video_id)
+                        next_viewer_sample = time.monotonic() + 30
                     for c in chat.get().sync_items():
                         self.new_message.emit(c.author.name, c.message, "youtube")
                         event_id = getattr(c, "id", None) or getattr(c, "messageId", None)
